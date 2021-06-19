@@ -14,7 +14,5 @@ bundle:
 
 clean:
 	git clean -X -d -f
-	rm *.bz2
-	rm -r target
 
 .PHONY: install build build-local bundle clean
