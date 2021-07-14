@@ -23,6 +23,7 @@ pub fn read_file(path: &str) -> Result<String, String> {
 }
 
 pub fn parse(file_contents: &str) -> Result<(), String> {
+    println!("{}", file_contents);
     let mut lines = file_contents.lines();
     let c = lines.next();
     if c.is_none() {
@@ -40,7 +41,11 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
     let n = A.len();
     let m = A[0].len();
     let A: Vec<f64> = A.iter().flatten().map(|f| f.to_owned()).collect();
-    let A = DMatrix::from_vec(n, m, A);
+    let A = DMatrix::from_row_slice(n, m, &A);
+
+    let w_col = A.ncols() - 1;
+    let w = A.column(w_col).clone_owned();
+    let A = A.remove_column(w_col);
 
     let c: Vec<f64> = c
         .unwrap()
@@ -49,8 +54,9 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
         .collect();
     let c = DVector::from_vec(c);
 
-    println!("{:#?}", c);
-    println!("{:#?}", A);
+    println!("c = {:#?}", c);
+    println!("w = {:#?}", w);
+    println!("A = {:#?}", A);
 
     Ok(())
 }
