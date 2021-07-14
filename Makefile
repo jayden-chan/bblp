@@ -15,4 +15,7 @@ bundle:
 clean:
 	git clean -X -d -f
 
-.PHONY: install build build-local bundle clean
+lint:
+	cargo clippy -- -W clippy::pedantic
+
+.PHONY: install build build-local bundle clean lint

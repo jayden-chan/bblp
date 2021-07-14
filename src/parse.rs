@@ -1,4 +1,4 @@
-use na::{DMatrix, DVector, Dim, VecStorage};
+use na::{DMatrix, DVector};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -26,9 +26,18 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
     println!("{}", file_contents);
     let mut lines = file_contents.lines();
     let c = lines.next();
+
     if c.is_none() {
-        return Err(format!("Not enough lines in input file"));
+        return Err(String::from("Not enough lines in input file"));
     }
+
+    // Compute c from the first line of text
+    let c: Vec<f64> = c
+        .unwrap()
+        .split_whitespace()
+        .map(|val| val.parse::<f64>().unwrap())
+        .collect();
+    let c = DVector::from_vec(c);
 
     let A: Vec<Vec<f64>> = lines
         .map(|l| {
@@ -42,30 +51,26 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
     let m = A[0].len();
 
     if n == 0 || m == 0 {
-        return Err(format!("Not enough rows/cols for matrix A"));
+        return Err(String::from("Not enough rows/cols for matrix A"));
     }
 
-    let A: Vec<f64> = A.iter().flatten().map(|f| f.to_owned()).collect();
+    // Convert A from 2D vector to 1D vector in row-major
+    let A: Vec<f64> = A.iter().flatten().map(f64::to_owned).collect();
     let A = DMatrix::from_row_slice(n, m, &A);
 
-    let w_col = A.ncols() - 1;
-    let w = A.column(w_col).clone_owned();
-
+    // Grab the w column off of A
+    let w = A.column(m - 1).clone_owned();
     let m = m - 1;
+
     println!("{}x{}", n, m);
+
+    // Compute the mxm identity matrix to append to A
     let I = DMatrix::<f64>::identity(m, m);
     let mut A = A.insert_columns(m, m - 1, 0.0);
 
     I.column_iter()
         .enumerate()
         .for_each(|(i, val)| A.set_column(m + i, &val));
-
-    let c: Vec<f64> = c
-        .unwrap()
-        .split_whitespace()
-        .map(|val| val.parse::<f64>().unwrap())
-        .collect();
-    let c = DVector::from_vec(c);
 
     println!("c = {:#?}", c);
     println!("w = {:#?}", w);
