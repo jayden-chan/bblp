@@ -1,4 +1,4 @@
-use na::{DMatrix, DVector};
+use na::{Const, DMatrix, DVector, Dynamic, Matrix, VecStorage};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -22,8 +22,14 @@ pub fn read_file(path: &str) -> Result<String, String> {
     }
 }
 
-pub fn parse(file_contents: &str) -> Result<(), String> {
-    println!("{}", file_contents);
+pub struct ParsedLP {
+    A: DMatrix<f64>,
+    c: Matrix<f64, Dynamic, Const<1>, VecStorage<f64, Dynamic, Const<1>>>,
+    w: Matrix<f64, Dynamic, Const<1>, VecStorage<f64, Dynamic, Const<1>>>,
+}
+
+pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
+    // println!("{}", file_contents);
     let mut lines = file_contents.lines();
     let c = lines.next();
 
@@ -31,14 +37,14 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
         return Err(String::from("Not enough lines in input file"));
     }
 
-    // Compute c from the first line of text
+    // Read value of top row into a vector
     let c: Vec<f64> = c
         .unwrap()
         .split_whitespace()
         .map(|val| val.parse::<f64>().unwrap())
         .collect();
-    let c = DVector::from_vec(c);
 
+    // Read the rest of the lines
     let A: Vec<Vec<f64>> = lines
         .map(|l| {
             l.split_whitespace()
@@ -54,7 +60,7 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
         return Err(String::from("Not enough rows/cols for matrix A"));
     }
 
-    // Convert A from 2D vector to 1D vector in row-major
+    // Convert A from 2D vector to 1D vector with row-major storage
     let A: Vec<f64> = A.iter().flatten().map(f64::to_owned).collect();
     let A = DMatrix::from_row_slice(m, n, &A);
 
@@ -64,15 +70,22 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
 
     // Compute the mxm identity matrix to append to A
     let I = DMatrix::<f64>::identity(m, m);
+
+    // We will only insert m - 1 columnns into A since we can re-use the column that
+    // was copied into w and no longer needed
     let mut A = A.insert_columns(n, m - 1, 0.0);
 
+    // Append I columns to A
     I.column_iter()
         .enumerate()
         .for_each(|(i, val)| A.set_column(n + i, &val));
 
-    println!("c = {}", c);
-    println!("w = {}", w);
-    println!("A = {}", A);
+    let c_len = c.len();
+    let c = DVector::from_vec(c).insert_rows(c_len, m + n - c_len, 0.0);
 
-    Ok(())
+    // println!("c = {}", c);
+    // println!("w = {}", w);
+    // println!("A = {}", A);
+
+    Ok(ParsedLP { A, c, w })
 }

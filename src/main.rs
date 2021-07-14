@@ -2,16 +2,14 @@
 extern crate nalgebra as na;
 
 mod parse;
+mod util;
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        return Err(String::from(
-            "Not enough arguments provided. You must specify a file to read.",
-        ));
-    }
+    let stdin_path = String::from("/dev/stdin");
+    let path = args.get(1).unwrap_or(&stdin_path);
 
-    let contents = parse::read_file(&args[1])?;
+    let contents = parse::read_file(path)?;
     match parse::parse(&contents) {
         Ok(_) => println!("parse ok"),
         Err(e) => eprintln!("{}", e),
