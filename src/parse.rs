@@ -47,8 +47,8 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
         })
         .collect();
 
-    let n = A.len();
-    let m = A[0].len();
+    let n = A[0].len();
+    let m = A.len();
 
     if n == 0 || m == 0 {
         return Err(String::from("Not enough rows/cols for matrix A"));
@@ -56,21 +56,19 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
 
     // Convert A from 2D vector to 1D vector in row-major
     let A: Vec<f64> = A.iter().flatten().map(f64::to_owned).collect();
-    let A = DMatrix::from_row_slice(n, m, &A);
+    let A = DMatrix::from_row_slice(m, n, &A);
 
     // Grab the w column off of A
-    let w = A.column(m - 1).clone_owned();
-    let m = m - 1;
-
-    println!("{}x{}", n, m);
+    let w = A.column(n - 1).clone_owned();
+    let n = n - 1;
 
     // Compute the mxm identity matrix to append to A
     let I = DMatrix::<f64>::identity(m, m);
-    let mut A = A.insert_columns(m, m - 1, 0.0);
+    let mut A = A.insert_columns(n - 1, m, 0.0);
 
     I.column_iter()
         .enumerate()
-        .for_each(|(i, val)| A.set_column(m + i, &val));
+        .for_each(|(i, val)| A.set_column(n - 1 + i, &val));
 
     println!("c = {:#?}", c);
     println!("w = {:#?}", w);
