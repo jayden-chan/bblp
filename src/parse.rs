@@ -40,12 +40,25 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
 
     let n = A.len();
     let m = A[0].len();
+
+    if n == 0 || m == 0 {
+        return Err(format!("Not enough rows/cols for matrix A"));
+    }
+
     let A: Vec<f64> = A.iter().flatten().map(|f| f.to_owned()).collect();
     let A = DMatrix::from_row_slice(n, m, &A);
 
     let w_col = A.ncols() - 1;
     let w = A.column(w_col).clone_owned();
-    let A = A.remove_column(w_col);
+
+    let m = m - 1;
+    println!("{}x{}", n, m);
+    let I = DMatrix::<f64>::identity(m, m);
+    let mut A = A.insert_columns(m, m - 1, 0.0);
+
+    I.column_iter()
+        .enumerate()
+        .for_each(|(i, val)| A.set_column(m + i, &val));
 
     let c: Vec<f64> = c
         .unwrap()
