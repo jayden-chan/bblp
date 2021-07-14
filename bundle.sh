@@ -1,4 +1,5 @@
 #!/bin/zsh
+# vim: ft=sh
 
 NAME=lp
 
