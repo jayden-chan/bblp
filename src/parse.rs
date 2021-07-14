@@ -1,3 +1,4 @@
+use na::{DMatrix, DVector, Dim, VecStorage};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -36,14 +37,20 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
         })
         .collect();
 
+    let n = A.len();
+    let m = A[0].len();
+    let A: Vec<f64> = A.iter().flatten().map(|f| f.to_owned()).collect();
+    let A = DMatrix::from_vec(n, m, A);
+
     let c: Vec<f64> = c
         .unwrap()
         .split_whitespace()
         .map(|val| val.parse::<f64>().unwrap())
         .collect();
+    let c = DVector::from_vec(c);
 
-    // println!("{:#?}", c);
-    // println!("{:#?}", A);
+    println!("{:#?}", c);
+    println!("{:#?}", A);
 
     Ok(())
 }

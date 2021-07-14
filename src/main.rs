@@ -15,7 +15,7 @@ fn main() {
     let contents = parse::read_file(&args[1]);
     match contents {
         Ok(s) => match parse::parse(&s) {
-            Ok(_) => println!("parse oK"),
+            Ok(_) => println!("parse ok"),
             Err(e) => eprintln!("{}", e),
         },
         Err(e) => eprintln!("Failed to read input file: {}", e),
