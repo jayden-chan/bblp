@@ -64,15 +64,15 @@ pub fn parse(file_contents: &str) -> Result<(), String> {
 
     // Compute the mxm identity matrix to append to A
     let I = DMatrix::<f64>::identity(m, m);
-    let mut A = A.insert_columns(n - 1, m, 0.0);
+    let mut A = A.insert_columns(n, m - 1, 0.0);
 
     I.column_iter()
         .enumerate()
-        .for_each(|(i, val)| A.set_column(n - 1 + i, &val));
+        .for_each(|(i, val)| A.set_column(n + i, &val));
 
-    println!("c = {:#?}", c);
-    println!("w = {:#?}", w);
-    println!("A = {:#?}", A);
+    println!("c = {}", c);
+    println!("w = {}", w);
+    println!("A = {}", A);
 
     Ok(())
 }
