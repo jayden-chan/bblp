@@ -4,7 +4,7 @@ use nalgebra::DVector;
 
 use crate::{
     parse::ParsedLP,
-    util::{mat_col_slice, vec_row_slice},
+    util::{inv, mat_col_slice, materialize_view, vec_row_slice},
 };
 
 pub enum Solution {
@@ -38,13 +38,13 @@ pub fn solve_primal(
     let mut B = B;
     let mut N = N;
 
-    let mut A_B_inverse = mat_col_slice(&A, &B).try_inverse().unwrap();
+    let mut A_B_inverse = inv(mat_col_slice(&A, &B))?;
+
     let mut x = DVector::<f64>::zeros(m + n);
     let x_B = A_B_inverse.clone_owned() * b.clone_owned();
     let x_N = DVector::<f64>::zeros(n);
-
-    B.iter().enumerate().for_each(|(e, i)| x[*i] = x_B[e]);
-    N.iter().enumerate().for_each(|(e, i)| x[*i] = x_N[e]);
+    materialize_view(&mut x, &x_B, &B);
+    materialize_view(&mut x, &x_N, &N);
 
     if x_B.min() < 0.0 {
         return Err(String::from("Initial basis is not feasible."));
@@ -59,16 +59,18 @@ pub fn solve_primal(
     loop {
         let c_B = vec_row_slice(&c, &B);
         let c_N = vec_row_slice(&c, &N);
-        A_B_inverse = mat_col_slice(&A, &B).try_inverse().unwrap();
+
+        A_B_inverse = inv(mat_col_slice(&A, &B))?;
         let A_N = mat_col_slice(&A, &N);
 
         let mut z = DVector::<f64>::zeros(m + n);
         let z_B = DVector::<f64>::zeros(m);
-        B.iter().enumerate().for_each(|(e, i)| z[*i] = z_B[e]);
         let z_N = (A_B_inverse.clone_owned() * A_N).transpose()
             * c_B.clone_owned()
             - c_N;
-        N.iter().enumerate().for_each(|(e, i)| z[*i] = z_N[e]);
+
+        materialize_view(&mut z, &z_B, &B);
+        materialize_view(&mut z, &z_N, &N);
 
         // print!("z_B = {}", z_B);
         // print!("z_N = {}", z_N);
@@ -86,12 +88,9 @@ pub fn solve_primal(
         let mut delta_x = DVector::<f64>::zeros(m + n);
         let delta_x_B = A_B_inverse * A.column(j);
         let delta_x_N = DVector::<f64>::zeros(n);
-        B.iter()
-            .enumerate()
-            .for_each(|(e, i)| delta_x[*i] = delta_x_B[e]);
-        N.iter()
-            .enumerate()
-            .for_each(|(e, i)| delta_x[*i] = delta_x_N[e]);
+
+        materialize_view(&mut delta_x, &delta_x_B, &B);
+        materialize_view(&mut delta_x, &delta_x_N, &N);
 
         if !(delta_x.max() > 0.0) {
             return Ok(Solution::Unbounded);
@@ -118,7 +117,7 @@ pub fn solve_primal(
         // println!("t = {}", t);
         // println!("delta_x_B = {}", delta_x_B);
         let x_B = x_B.clone_owned() - t * delta_x_B;
-        B.iter().enumerate().for_each(|(e, i)| x[*i] = x_B[e]);
+        materialize_view(&mut x, &x_B, &B);
         x[j] = t;
 
         let B_replace_idx = B.iter().position(|idx| *idx == i).unwrap();

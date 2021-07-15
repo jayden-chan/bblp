@@ -25,3 +25,21 @@ pub fn vec_row_slice(M: &DVector<f64>, idxs: &Vec<usize>) -> DVector<f64> {
         .for_each(|(i, idx)| ret.set_row(i, &M.row(*idx)));
     ret
 }
+
+// Take the inverse of matrix M and convert the Option<M>
+// result to Result<M, String>
+#[inline(always)]
+pub fn inv(M: DMatrix<f64>) -> Result<DMatrix<f64>, String> {
+    M.try_inverse()
+        .ok_or_else(|| String::from("Matrix isn't inverible"))
+}
+
+pub fn materialize_view(
+    main: &mut DVector<f64>,
+    view: &DVector<f64>,
+    idxs: &Vec<usize>,
+) {
+    idxs.iter()
+        .enumerate()
+        .for_each(|(e, i)| main[*i] = view[e]);
+}
