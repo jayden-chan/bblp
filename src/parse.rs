@@ -1,4 +1,4 @@
-use na::{Const, DMatrix, DVector, Dynamic, Matrix, VecStorage};
+use na::{DMatrix, DVector};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -23,13 +23,14 @@ pub fn read_file(path: &str) -> Result<String, String> {
 }
 
 pub struct ParsedLP {
-    A: DMatrix<f64>,
-    c: Matrix<f64, Dynamic, Const<1>, VecStorage<f64, Dynamic, Const<1>>>,
-    w: Matrix<f64, Dynamic, Const<1>, VecStorage<f64, Dynamic, Const<1>>>,
+    pub A: DMatrix<f64>,
+    pub b: DVector<f64>,
+    pub c: DVector<f64>,
+    pub n: usize,
+    pub m: usize,
 }
 
 pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
-    // println!("{}", file_contents);
     let mut lines = file_contents.lines();
     let c = lines.next();
 
@@ -42,6 +43,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .unwrap()
         .split_whitespace()
         .map(|val| val.parse::<f64>().unwrap())
+        .map(|val| if val == -0.0 { 0.0 } else { val })
         .collect();
 
     // Read the rest of the lines
@@ -49,6 +51,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .map(|l| {
             l.split_whitespace()
                 .map(|val| val.parse::<f64>().unwrap())
+                .map(|val| if val == -0.0 { 0.0 } else { val })
                 .collect()
         })
         .collect();
@@ -64,15 +67,15 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
     let A: Vec<f64> = A.iter().flatten().map(f64::to_owned).collect();
     let A = DMatrix::from_row_slice(m, n, &A);
 
-    // Grab the w column off of A
-    let w = A.column(n - 1).clone_owned();
+    // Grab the b column off of A
+    let b = A.column(n - 1).clone_owned();
     let n = n - 1;
 
     // Compute the mxm identity matrix to append to A
     let I = DMatrix::<f64>::identity(m, m);
 
     // We will only insert m - 1 columnns into A since we can re-use the column that
-    // was copied into w and no longer needed
+    // was copied to `b` and no longer needed
     let mut A = A.insert_columns(n, m - 1, 0.0);
 
     // Append I columns to A
@@ -83,9 +86,5 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
     let c_len = c.len();
     let c = DVector::from_vec(c).insert_rows(c_len, m + n - c_len, 0.0);
 
-    // println!("c = {}", c);
-    // println!("w = {}", w);
-    // println!("A = {}", A);
-
-    Ok(ParsedLP { A, c, w })
+    Ok(ParsedLP { A, b, c, n, m })
 }
