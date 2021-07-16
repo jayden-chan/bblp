@@ -7,6 +7,8 @@ use crate::{
     util::{inv, mat_col_slice, materialize_view, round_7, vec_row_slice},
 };
 
+const EPSILON: f64 = 0.00000001;
+
 pub enum Solution {
     Infeasible,
     Unbounded,
@@ -40,16 +42,13 @@ pub fn solve_primal(
     let m = parsed_lp.m;
     let mut B = B;
     let mut N = N;
-    B.sort_unstable();
-    N.sort_unstable();
-
-    let mut A_B_inverse = inv(mat_col_slice(&A, &B)).expect("AB inv outer");
 
     let mut x = DVector::<f64>::zeros(m + n);
-    let x_B = A_B_inverse.clone_owned() * b.clone_owned();
-    let x_N = DVector::<f64>::zeros(n);
+    let x_B = mat_col_slice(&A, &B)
+        .lu()
+        .solve(&b)
+        .ok_or_else(|| String::from("Failed to solve AB outer"))?;
     materialize_view(&mut x, &x_B, &B);
-    materialize_view(&mut x, &x_N, &N);
 
     if x_B.min() < 0.0 {
         return Err(String::from("Initial basis is not feasible."));
@@ -61,38 +60,40 @@ pub fn solve_primal(
         let c_B = vec_row_slice(&c, &B);
         let c_N = vec_row_slice(&c, &N);
 
-        A_B_inverse = inv(mat_col_slice(&A, &B)).expect("AB inv inner");
+        let A_B = mat_col_slice(&A, &B);
         let A_N = mat_col_slice(&A, &N);
 
-        let mut z = DVector::<f64>::zeros(m + n);
-        let z_B = DVector::<f64>::zeros(m);
-        let z_N = (A_B_inverse.clone_owned() * A_N).transpose()
-            * c_B.clone_owned()
-            - c_N;
+        let v = A_B
+            .transpose()
+            .lu()
+            .solve(&c_B)
+            .ok_or_else(|| String::from("Failed to solve A_B_T decomp"))?;
 
-        materialize_view(&mut z, &z_B, &B);
+        let mut z = DVector::<f64>::zeros(m + n);
+        let z_N = A_N.transpose() * v - c_N;
         materialize_view(&mut z, &z_N, &N);
 
-        let zeta_star =
-            (c_B.transpose() * A_B_inverse.clone_owned() * b.clone_owned())[0];
-
-        if !(z_N.min() < 0.0) {
+        if !(z_N.min() < -EPSILON) {
             println!("iterations = {}", iterations);
+            let zeta_star = (c_B.transpose()
+                * inv(A_B).expect("AB inv inner").clone_owned()
+                * b.clone_owned())[0];
             return Ok(Solution::Optimal(
                 zeta_star,
                 x.iter().take(n).map(|f| *f).collect(),
             ));
         }
 
-        let j = *N.iter().find(|idx| z[**idx] < 0.0).unwrap();
+        let j = *N.iter().find(|idx| z[**idx] < -EPSILON).unwrap();
         let mut delta_x = DVector::<f64>::zeros(m + n);
-        let delta_x_B = A_B_inverse * A.column(j);
-        let delta_x_N = DVector::<f64>::zeros(n);
+        let delta_x_B = A_B
+            .lu()
+            .solve(&A.column(j))
+            .ok_or_else(|| String::from("Failed to solve for delta_x_B"))?;
 
         materialize_view(&mut delta_x, &delta_x_B, &B);
-        materialize_view(&mut delta_x, &delta_x_N, &N);
 
-        if !(delta_x.max() > 0.0) {
+        if !(delta_x.max() > EPSILON) {
             return Ok(Solution::Unbounded);
         }
 
@@ -102,7 +103,7 @@ pub fn solve_primal(
                 let x_i = x[*idx];
                 let delta_x_i = delta_x[*idx];
 
-                if delta_x_i > 0.0 {
+                if delta_x_i > EPSILON {
                     Some((x_i / delta_x_i, *idx))
                 } else {
                     None

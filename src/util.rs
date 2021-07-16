@@ -1,11 +1,6 @@
 use nalgebra::{DMatrix, DVector};
 
 #[inline(always)]
-pub fn float_eq(a: f64, b: f64) -> bool {
-    (a - b).abs() < f64::EPSILON
-}
-
-#[inline(always)]
 pub fn round_7(input: f64) -> f64 {
     (input * 10000000.0).round() / 10000000.0
 }

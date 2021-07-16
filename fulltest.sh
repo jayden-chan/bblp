@@ -7,8 +7,8 @@ set -e
 set +e
 
 flags=()
-if [ "$1" = "--single" ]; then
-    inputs=($2)
+if [ "$2" = "--single" ]; then
+    inputs=($3)
     flags+=("--debug")
 else
     inputs=($(ls ./test_LPs/input/*))
