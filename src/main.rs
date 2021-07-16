@@ -1,5 +1,8 @@
 #![allow(non_snake_case)]
 
+use crate::solve::{solve_dual, solve_primal, Solution};
+use na::DVector;
+
 extern crate nalgebra as na;
 
 mod parse;
@@ -16,6 +19,11 @@ fn main() -> Result<(), String> {
     let file_contents = parse::read_file(path)?;
     let parsed = parse::parse(&file_contents)?;
 
+    let A = parsed.A;
+    let b = parsed.b;
+    let c = parsed.c;
+    let n = parsed.n;
+    let m = parsed.m;
     let N: Vec<usize> = (0..parsed.n).collect();
     let B: Vec<usize> = (parsed.n..parsed.n + parsed.m).collect();
 
@@ -23,18 +31,32 @@ fn main() -> Result<(), String> {
         println!("{}", file_contents);
         println!("N = {:?}", N);
         println!("B = {:?}", B);
-        println!("c = {}", parsed.c);
-        println!("b = {}", parsed.b);
-        println!("A = {}", parsed.A);
+        println!("c = {}", c);
+        println!("b = {}", b);
+        println!("A = {}", A);
         println!("{}", "#".repeat(50));
     }
 
-    let solve_result = if !(parsed.b.min() < 0.0) {
-        solve::solve_primal(parsed, B, N)?
-    } else if !(parsed.c.max() > 0.0) {
-        solve::solve_dual(parsed, B, N)?
+    let solve_result = if !(b.min() < 0.0) {
+        // Primal-feasible
+        println!("Solving primal problem");
+        solve_primal(A, b, c, n, m, B, N)?
+    } else if !(c.max() > 0.0) {
+        // Dual-feasible
+        println!("Solving dual problem");
+        solve_dual(A, b, c, n, m, B, N)?
     } else {
-        return Err(String::from("Can't solve this LP yet"));
+        let zero = DVector::<f64>::zeros(c.len());
+        println!("Solving aux problem");
+        match solve_dual(A.clone_owned(), b.clone_owned(), zero, n, m, B, N)? {
+            Solution::Optimal(aux_solution) => {
+                println!("B = {:?}", aux_solution.B);
+                println!("N = {:?}", aux_solution.N);
+                solve_primal(A, b, c, n, m, aux_solution.B, aux_solution.N)?
+            }
+            Solution::Unbounded => Solution::Infeasible,
+            Solution::Infeasible => Solution::Infeasible,
+        }
     };
 
     println!("{}", solve_result);

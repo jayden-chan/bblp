@@ -1,18 +1,22 @@
-use crate::{
-    parse::ParsedLP,
-    util::{
-        float_eq, inv, mat_col_slice, materialize_view, round_7, vec_row_slice,
-    },
+use crate::util::{
+    inv, mat_col_slice, materialize_view, round_7, vec_row_slice,
 };
-use nalgebra::DVector;
+use nalgebra::{DMatrix, DVector};
 use std::fmt;
 
 const EPSILON: f64 = 0.000000001;
 
+pub struct SolutionResults {
+    objective_value: f64,
+    variable_values: Vec<f64>,
+    pub B: Vec<usize>,
+    pub N: Vec<usize>,
+}
+
 pub enum Solution {
     Infeasible,
     Unbounded,
-    Optimal(f64, Vec<f64>),
+    Optimal(SolutionResults),
 }
 
 impl fmt::Display for Solution {
@@ -20,28 +24,33 @@ impl fmt::Display for Solution {
         match self {
             Solution::Infeasible => write!(f, "infeasible"),
             Solution::Unbounded => write!(f, "unbounded"),
-            Solution::Optimal(obj_val, x) => {
-                let x_vals = x
+            Solution::Optimal(results) => {
+                let x_vals = results
+                    .variable_values
                     .iter()
                     .map(|v| format!("{}", round_7(*v)))
                     .collect::<Vec<String>>()
                     .join(" ");
-                write!(f, "optimal\n{}\n{}", round_7(*obj_val), x_vals)
+                write!(
+                    f,
+                    "optimal\n{}\n{}",
+                    round_7(results.objective_value),
+                    x_vals
+                )
             }
         }
     }
 }
 
 pub fn solve_primal(
-    parsed_lp: ParsedLP,
+    A: DMatrix<f64>,
+    b: DVector<f64>,
+    c: DVector<f64>,
+    n: usize,
+    m: usize,
     B: Vec<usize>,
     N: Vec<usize>,
 ) -> Result<Solution, String> {
-    let A = parsed_lp.A;
-    let b = parsed_lp.b;
-    let c = parsed_lp.c;
-    let n = parsed_lp.n;
-    let m = parsed_lp.m;
     let mut B = B;
     let mut N = N;
 
@@ -52,7 +61,7 @@ pub fn solve_primal(
         .ok_or_else(|| String::from("Failed to solve AB outer"))?;
     materialize_view(&mut x, &x_B, &B);
 
-    if x_B.min() < 0.0 {
+    if x_B.min() < -EPSILON {
         return Err(String::from("Initial basis is not feasible."));
     }
 
@@ -76,14 +85,18 @@ pub fn solve_primal(
         materialize_view(&mut z, &z_N, &N);
 
         if !(z_N.min() < -EPSILON) {
-            println!("iterations = {}", iterations);
+            eprintln!("iterations = {}", iterations);
+
             let zeta_star = (c_B.transpose()
                 * inv(A_B).expect("AB inv inner").clone_owned()
                 * b.clone_owned())[0];
-            return Ok(Solution::Optimal(
-                zeta_star,
-                x.iter().take(n).map(|f| *f).collect(),
-            ));
+
+            return Ok(Solution::Optimal(SolutionResults {
+                objective_value: zeta_star,
+                variable_values: x.iter().take(n).map(|f| *f).collect(),
+                B,
+                N,
+            }));
         }
 
         let j = *N.iter().find(|idx| z[**idx] < -EPSILON).unwrap();
@@ -129,15 +142,14 @@ pub fn solve_primal(
 }
 
 pub fn solve_dual(
-    parsed_lp: ParsedLP,
+    A: DMatrix<f64>,
+    b: DVector<f64>,
+    c: DVector<f64>,
+    n: usize,
+    m: usize,
     B: Vec<usize>,
     N: Vec<usize>,
 ) -> Result<Solution, String> {
-    let A = parsed_lp.A;
-    let b = parsed_lp.b;
-    let c = parsed_lp.c;
-    let n = parsed_lp.n;
-    let m = parsed_lp.m;
     let mut B = B;
     let mut N = N;
 
@@ -155,7 +167,7 @@ pub fn solve_dual(
     let z_N = A_N.transpose() * v - c_N;
     materialize_view(&mut z, &z_N, &N);
 
-    if z_N.min() < 0.0 {
+    if z_N.min() < -EPSILON {
         return Err(String::from("Initial basis is not feasible."));
     }
 
@@ -175,14 +187,18 @@ pub fn solve_dual(
         materialize_view(&mut x, &x_B, &B);
 
         if !(x_B.min() < -EPSILON) {
-            println!("iterations = {}", iterations);
+            eprintln!("iterations = {}", iterations);
+
             let zeta_star = (c_B.transpose()
                 * inv(A_B).expect("AB inv inner").clone_owned()
                 * b.clone_owned())[0];
-            return Ok(Solution::Optimal(
-                zeta_star,
-                x.iter().take(n).map(|f| *f).collect(),
-            ));
+
+            return Ok(Solution::Optimal(SolutionResults {
+                objective_value: zeta_star,
+                variable_values: x.iter().take(n).map(|f| *f).collect(),
+                B,
+                N,
+            }));
         }
 
         let i = *B.iter().find(|idx| x[**idx] < -EPSILON).unwrap();
@@ -207,6 +223,7 @@ pub fn solve_dual(
         materialize_view(&mut delta_z, &delta_z_N, &N);
 
         if !(delta_z.max() > EPSILON) {
+            eprintln!("iterations = {}", iterations);
             return Ok(Solution::Unbounded);
         }
 
