@@ -4,7 +4,7 @@ use nalgebra::DVector;
 
 use crate::{
     parse::ParsedLP,
-    util::{inv, mat_col_slice, materialize_view, vec_row_slice},
+    util::{inv, mat_col_slice, materialize_view, round_7, vec_row_slice},
 };
 
 pub enum Solution {
@@ -19,7 +19,10 @@ impl fmt::Display for Solution {
             Solution::Infeasible => write!(f, "infeasible"),
             Solution::Unbounded => write!(f, "unbounded"),
             Solution::Optimal(obj_val, point) => {
-                write!(f, "optimal\n{:.7}\n{:?}", obj_val, point)
+                let points: Vec<String> =
+                    point.iter().map(|v| format!("{}", round_7(*v))).collect();
+                let points = points.join(" ");
+                write!(f, "optimal\n{}\n{}", round_7(*obj_val), points)
             }
         }
     }
@@ -37,8 +40,10 @@ pub fn solve_primal(
     let m = parsed_lp.m;
     let mut B = B;
     let mut N = N;
+    B.sort_unstable();
+    N.sort_unstable();
 
-    let mut A_B_inverse = inv(mat_col_slice(&A, &B))?;
+    let mut A_B_inverse = inv(mat_col_slice(&A, &B)).expect("AB inv outer");
 
     let mut x = DVector::<f64>::zeros(m + n);
     let x_B = A_B_inverse.clone_owned() * b.clone_owned();
@@ -50,17 +55,13 @@ pub fn solve_primal(
         return Err(String::from("Initial basis is not feasible."));
     }
 
-    // print!("A_B_inverse = {}", A_B_inverse);
-    // print!("x_B = {}", x_B);
-    // print!("x_N = {}", x_N);
-    // print!("x = {}", x);
-
     let mut iterations = 0;
     loop {
+        let x_B = vec_row_slice(&x, &B);
         let c_B = vec_row_slice(&c, &B);
         let c_N = vec_row_slice(&c, &N);
 
-        A_B_inverse = inv(mat_col_slice(&A, &B))?;
+        A_B_inverse = inv(mat_col_slice(&A, &B)).expect("AB inv inner");
         let A_N = mat_col_slice(&A, &N);
 
         let mut z = DVector::<f64>::zeros(m + n);
@@ -72,15 +73,14 @@ pub fn solve_primal(
         materialize_view(&mut z, &z_B, &B);
         materialize_view(&mut z, &z_N, &N);
 
-        // print!("z_B = {}", z_B);
-        // print!("z_N = {}", z_N);
-        // print!("z = {}", z);
+        let zeta_star =
+            (c_B.transpose() * A_B_inverse.clone_owned() * b.clone_owned())[0];
 
         if !(z_N.min() < 0.0) {
-            let zeta_star = (c_B.transpose() * A_B_inverse * b)[0];
+            println!("iterations = {}", iterations);
             return Ok(Solution::Optimal(
                 zeta_star,
-                x.iter().map(|f| *f).collect(),
+                x.iter().take(n).map(|f| *f).collect(),
             ));
         }
 
@@ -114,10 +114,7 @@ pub fn solve_primal(
             .min_by(|(x, _), (y, _)| x.partial_cmp(y).unwrap())
             .unwrap();
 
-        // println!("t = {}", t);
-        // println!("delta_x_B = {}", delta_x_B);
-        let x_B = x_B.clone_owned() - t * delta_x_B;
-        materialize_view(&mut x, &x_B, &B);
+        materialize_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
         x[j] = t;
 
         let B_replace_idx = B.iter().position(|idx| *idx == i).unwrap();

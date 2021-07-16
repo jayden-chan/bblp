@@ -30,6 +30,7 @@ fn main() -> Result<(), String> {
         println!("c = {}", parsed.c);
         println!("b = {}", parsed.b);
         println!("A = {}", parsed.A);
+        println!("{}", "#".repeat(50));
     }
 
     let solve_result = solve::solve_primal(parsed, B, N)?;

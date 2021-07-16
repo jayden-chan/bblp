@@ -5,8 +5,15 @@ pub fn float_eq(a: f64, b: f64) -> bool {
     (a - b).abs() < f64::EPSILON
 }
 
-// Construct a new Matrix comprised of the columns
-// of `M` given by the indexes in `idxs`
+#[inline(always)]
+pub fn round_7(input: f64) -> f64 {
+    (input * 10000000.0).round() / 10000000.0
+}
+
+/**
+ * Construct a new Matrix comprised of the columns
+ * of `M` given by the indexes in `idxs`
+ */
 pub fn mat_col_slice(M: &DMatrix<f64>, idxs: &Vec<usize>) -> DMatrix<f64> {
     let mut ret = DMatrix::<f64>::zeros(M.nrows(), idxs.len());
     idxs.iter()
@@ -15,9 +22,11 @@ pub fn mat_col_slice(M: &DMatrix<f64>, idxs: &Vec<usize>) -> DMatrix<f64> {
     ret
 }
 
-// TODO: fix docs
-// Construct a new Matrix comprised of the columns
-// of `M` given by the indexes in `idxs`
+/**
+ * TODO: fix docs
+ * Construct a new Matrix comprised of the columns
+ * of `M` given by the indexes in `idxs`
+ */
 pub fn vec_row_slice(M: &DVector<f64>, idxs: &Vec<usize>) -> DVector<f64> {
     let mut ret = DVector::<f64>::zeros(idxs.len());
     idxs.iter()
@@ -26,8 +35,10 @@ pub fn vec_row_slice(M: &DVector<f64>, idxs: &Vec<usize>) -> DVector<f64> {
     ret
 }
 
-// Take the inverse of matrix M and convert the Option<M>
-// result to Result<M, String>
+/**
+ * Take the inverse of matrix M and convert the Option<M>
+ * result to Result<M, String>
+ */
 #[inline(always)]
 pub fn inv(M: DMatrix<f64>) -> Result<DMatrix<f64>, String> {
     M.try_inverse()
