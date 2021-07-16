@@ -1,10 +1,11 @@
 use crate::util::{
-    inv, mat_col_slice, materialize_view, round_7, vec_row_slice,
+    inv, mat_col_slice, materialize_view, round_sig_figs, vec_row_slice,
 };
+use crate::EPSILON;
 use nalgebra::{DMatrix, DVector};
 use std::fmt;
 
-const EPSILON: f64 = 0.000000001;
+const PRINT_SIG_FIGS: u32 = 7;
 
 pub struct SolutionResults {
     objective_value: f64,
@@ -28,13 +29,13 @@ impl fmt::Display for Solution {
                 let x_vals = results
                     .variable_values
                     .iter()
-                    .map(|v| format!("{}", round_7(*v)))
+                    .map(|v| format!("{}", round_sig_figs(*v, PRINT_SIG_FIGS)))
                     .collect::<Vec<String>>()
                     .join(" ");
                 write!(
                     f,
                     "optimal\n{}\n{}",
-                    round_7(results.objective_value),
+                    round_sig_figs(results.objective_value, PRINT_SIG_FIGS),
                     x_vals
                 )
             }
@@ -224,7 +225,7 @@ pub fn solve_dual(
 
         if !(delta_z.max() > EPSILON) {
             eprintln!("iterations = {}", iterations);
-            return Ok(Solution::Unbounded);
+            return Ok(Solution::Infeasible);
         }
 
         let (s, j) = N

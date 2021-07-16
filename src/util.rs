@@ -1,8 +1,17 @@
 use nalgebra::{DMatrix, DVector};
 
-#[inline(always)]
-pub fn round_7(input: f64) -> f64 {
-    (input * 10000000.0).round() / 10000000.0
+pub fn round_sig_figs(value: f64, digits: u32) -> f64 {
+    if value.abs() < f64::EPSILON {
+        return 0.0;
+    }
+
+    let factor = 10f64.powf(digits as f64 - value.abs().log10().ceil());
+    let result = (value * factor).round() / factor;
+    return if result.abs() < 0.0000000001 {
+        0.0
+    } else {
+        result
+    };
 }
 
 /**

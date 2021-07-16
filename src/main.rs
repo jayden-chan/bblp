@@ -1,9 +1,11 @@
 #![allow(non_snake_case)]
 
+extern crate nalgebra as na;
+
 use crate::solve::{solve_dual, solve_primal, Solution};
 use na::DVector;
 
-extern crate nalgebra as na;
+pub const EPSILON: f64 = 0.0000001;
 
 mod parse;
 mod solve;
@@ -39,19 +41,17 @@ fn main() -> Result<(), String> {
 
     let solve_result = if !(b.min() < 0.0) {
         // Primal-feasible
-        println!("Solving primal problem");
+        eprintln!("Solving primal problem");
         solve_primal(A, b, c, n, m, B, N)?
     } else if !(c.max() > 0.0) {
         // Dual-feasible
-        println!("Solving dual problem");
+        eprintln!("Solving dual problem");
         solve_dual(A, b, c, n, m, B, N)?
     } else {
         let zero = DVector::<f64>::zeros(c.len());
-        println!("Solving aux problem");
+        eprintln!("Solving aux problem");
         match solve_dual(A.clone_owned(), b.clone_owned(), zero, n, m, B, N)? {
             Solution::Optimal(aux_solution) => {
-                println!("B = {:?}", aux_solution.B);
-                println!("N = {:?}", aux_solution.N);
                 solve_primal(A, b, c, n, m, aux_solution.B, aux_solution.N)?
             }
             Solution::Unbounded => Solution::Infeasible,
