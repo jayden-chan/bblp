@@ -9,7 +9,7 @@ set +e
 flags=()
 if [ "$2" = "--single" ]; then
     inputs=($3)
-    flags+=("--debug")
+    # flags+=("--debug")
 else
     inputs=($(ls ./test_LPs/input/*))
 fi

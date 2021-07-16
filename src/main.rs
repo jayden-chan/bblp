@@ -16,10 +16,6 @@ fn main() -> Result<(), String> {
     let file_contents = parse::read_file(path)?;
     let parsed = parse::parse(&file_contents)?;
 
-    if parsed.b.min() < 0.0 {
-        return Err(String::from("Can't solve this LP yet"));
-    }
-
     let N: Vec<usize> = (0..parsed.n).collect();
     let B: Vec<usize> = (parsed.n..parsed.n + parsed.m).collect();
 
@@ -33,7 +29,14 @@ fn main() -> Result<(), String> {
         println!("{}", "#".repeat(50));
     }
 
-    let solve_result = solve::solve_primal(parsed, B, N)?;
+    let solve_result = if !(parsed.b.min() < 0.0) {
+        solve::solve_primal(parsed, B, N)?
+    } else if !(parsed.c.max() > 0.0) {
+        solve::solve_dual(parsed, B, N)?
+    } else {
+        return Err(String::from("Can't solve this LP yet"));
+    };
+
     println!("{}", solve_result);
 
     Ok(())
