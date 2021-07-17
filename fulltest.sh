@@ -2,41 +2,46 @@
 # vim: ft=sh
 
 export RUST_BACKTRACE=1
-export GIT_PAGER="diff-so-fancy" 
+single="false"
+mode="debug"
+inputs=()
 
-set -e
-[[ "$1" = "--release" ]] && cargo build --release || cargo build
-[[ "$1" = "--release" ]] && folder="release" || folder="debug"
-set +e
+while test $# -gt 0
+do
+    case "$1" in
+        --release) mode="release"
+            ;;
+        --debug) mode="debug"
+            ;;
+        --easy) inputs=(./test_LPs/input/vanderbei* ./test_LPs/input/v2* ./test_LPs/input/445k21*)
+            ;;
+        --vanderbei) inputs=(./test_LPs/input/vanderbei*)
+            ;;
+        --vol2) inputs=(./test_LPs/input/v2*)
+            ;;
+        --netlib) inputs=(./test_LPs/input/netlib*)
+            ;;
+        *) inputs+=( "$1" ); single="true"
+            ;;
+    esac
+    shift
+done
 
-flags=()
-if [ "$2" = "--single" ]; then
-    inputs=($3)
-elif [ "$2" = "--easy" ]; then
-    inputs=($(ls ./test_LPs/input/vanderbei* ./test_LPs/input/v2* ./test_LPs/input/445k21*))
-elif [ "$2" = "--vanderbei" ]; then
-    inputs=($(ls ./test_LPs/input/vanderbei*))
-elif [ "$2" = "--vol2" ]; then
-    inputs=($(ls ./test_LPs/input/v2*))
-elif [ "$2" = "--netlib" ]; then
-    inputs=($(ls ./test_LPs/input/netlib*))
-else
-    inputs=($(ls ./test_LPs/input/*))
-fi
+(if [ "$mode" = "release" ]; then cargo build --release; else cargo build; fi) || exit
 
-execpath=./target/$folder/lp;
+execpath=./target/$mode/lp
 
 for input in $inputs; do
     local output=$(echo $input | sed -E 's/input/output/')
 
-    if [ "$2" = "--single" ]; then
-        my_result=$($execpath $input $flags)
-        echo $my_result
+    if [ "$single" = "true" ]; then
+        $execpath $input
         cat $output
+        echo
     else
         echo -n ${input:t:r}
-        my_result=$($execpath $input $flags 2>/dev/null)
-        git diff --no-index =(echo $my_result) $output
-        [[ "$?" = "0" ]] && echo " \e[1m\e[32mOK\e[0m" || echo
+        local my_result=$($execpath $input 2>/dev/null)
+        local diff=$(git --no-pager diff --no-index =(echo $my_result) $output)
+        [[ "$?" = "0" ]] && echo " \e[1m\e[32mOK\e[0m" || (echo && echo "$diff" | diff-so-fancy)
     fi
 done
