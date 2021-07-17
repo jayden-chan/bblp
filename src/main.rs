@@ -6,8 +6,11 @@ mod parse;
 mod solve;
 mod util;
 
-use na::DVector;
+use na::{DMatrix, DVector};
 use solve::SolveResult;
+
+pub type Matrix = DMatrix<f64>;
+pub type Vector = DVector<f64>;
 pub const EPSILON: f64 = 1e-6;
 
 fn main() -> Result<(), String> {
@@ -35,7 +38,7 @@ fn main() -> Result<(), String> {
         eprintln!("Solving dual problem");
         solve::dual(&A, &b, &c, B, N)?
     } else {
-        let zero = DVector::<f64>::zeros(c.len());
+        let zero = Vector::zeros(c.len());
         eprintln!("Solving aux problem");
 
         match solve::dual(&A, &b, &zero, B, N)? {

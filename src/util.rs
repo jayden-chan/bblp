@@ -1,4 +1,4 @@
-use nalgebra::{DMatrix, DVector};
+use crate::{Matrix, Vector};
 
 /**
  * Round `value` to `d` significant digits.
@@ -33,8 +33,8 @@ pub fn round_sig_figs(value: f64, d: u32) -> f64 {
  * Construct a new matrix consisting of the columns from `M`
  * given by the indices from `idxs`
  */
-pub fn col_slice(M: &DMatrix<f64>, idxs: &[usize]) -> DMatrix<f64> {
-    let mut ret = DMatrix::<f64>::zeros(M.nrows(), idxs.len());
+pub fn col_slice(M: &Matrix, idxs: &[usize]) -> Matrix {
+    let mut ret = Matrix::zeros(M.nrows(), idxs.len());
     idxs.iter()
         .enumerate()
         .for_each(|(i, idx)| ret.set_column(i, &M.column(*idx)));
@@ -45,8 +45,8 @@ pub fn col_slice(M: &DMatrix<f64>, idxs: &[usize]) -> DMatrix<f64> {
  * Construct a new vector consisting of the elements from `V`
  * given by the indices from `idxs`
  */
-pub fn row_slice(V: &DVector<f64>, idxs: &[usize]) -> DVector<f64> {
-    let mut ret = DVector::<f64>::zeros(idxs.len());
+pub fn row_slice(V: &Vector, idxs: &[usize]) -> Vector {
+    let mut ret = Vector::zeros(idxs.len());
     idxs.iter()
         .enumerate()
         .for_each(|(i, idx)| ret.set_row(i, &V.row(*idx)));
@@ -57,11 +57,7 @@ pub fn row_slice(V: &DVector<f64>, idxs: &[usize]) -> DVector<f64> {
  * Copy the elements from `view` into `main` according
  * to the indices given by `idxs`.
  */
-pub fn materialize_view(
-    main: &mut DVector<f64>,
-    view: &DVector<f64>,
-    idxs: &[usize],
-) {
+pub fn materialize_view(main: &mut Vector, view: &Vector, idxs: &[usize]) {
     idxs.iter()
         .enumerate()
         .for_each(|(e, i)| main[*i] = view[e]);

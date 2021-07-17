@@ -1,16 +1,15 @@
 use crate::solve::{Solution, SolveResult};
 use crate::util::{col_slice, materialize_view, row_slice};
-use crate::EPSILON;
-use nalgebra::{DMatrix, DVector};
+use crate::{Matrix, Vector, EPSILON};
 
 /**
  * Primal simplex solve routine as described on
  * slide 73 of lecture 14
  */
 pub fn primal(
-    A: &DMatrix<f64>,
-    b: &DVector<f64>,
-    c: &DVector<f64>,
+    A: &Matrix,
+    b: &Vector,
+    c: &Vector,
     B: Vec<usize>,
     N: Vec<usize>,
 ) -> Result<SolveResult, String> {
@@ -20,7 +19,7 @@ pub fn primal(
     let n = N.len();
     let m = B.len();
 
-    let mut x = DVector::<f64>::zeros(m + n);
+    let mut x = Vector::zeros(m + n);
     let x_B = col_slice(A, &B)
         .lu()
         .solve(b)
@@ -46,7 +45,7 @@ pub fn primal(
             .solve(&c_B)
             .ok_or_else(|| String::from("Failed to solve A_B_T decomp"))?;
 
-        let mut z = DVector::<f64>::zeros(m + n);
+        let mut z = Vector::zeros(m + n);
         let z_N = A_N.transpose() * v - c_N;
         materialize_view(&mut z, &z_N, &N);
 
@@ -62,7 +61,7 @@ pub fn primal(
         }
 
         let j = *N.iter().find(|idx| z[**idx] < -EPSILON).unwrap();
-        let mut delta_x = DVector::<f64>::zeros(m + n);
+        let mut delta_x = Vector::zeros(m + n);
         let delta_x_B = A_B
             .lu()
             .solve(&A.column(j))

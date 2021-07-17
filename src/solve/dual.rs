@@ -1,16 +1,15 @@
 use crate::solve::{Solution, SolveResult};
 use crate::util::{col_slice, materialize_view, row_slice};
-use crate::EPSILON;
-use nalgebra::{DMatrix, DVector};
+use crate::{Matrix, Vector, EPSILON};
 
 /**
  * Dual simplex solve routine as described on
  * slide 97 of lecture 14
  */
 pub fn dual(
-    A: &DMatrix<f64>,
-    b: &DVector<f64>,
-    c: &DVector<f64>,
+    A: &Matrix,
+    b: &Vector,
+    c: &Vector,
     B: Vec<usize>,
     N: Vec<usize>,
 ) -> Result<SolveResult, String> {
@@ -25,7 +24,7 @@ pub fn dual(
     let A_B = col_slice(A, &B);
     let A_N = col_slice(A, &N);
 
-    let mut z = DVector::<f64>::zeros(m + n);
+    let mut z = Vector::zeros(m + n);
     let v = A_B
         .transpose()
         .lu()
@@ -46,7 +45,7 @@ pub fn dual(
         let A_N = col_slice(A, &N);
         let c_B = row_slice(c, &B);
 
-        let mut x = DVector::<f64>::zeros(m + n);
+        let mut x = Vector::zeros(m + n);
         let x_B = col_slice(A, &B)
             .lu()
             .solve(b)
@@ -66,11 +65,11 @@ pub fn dual(
 
         let i_idx = B.iter().position(|idx| x[*idx] < -EPSILON).unwrap();
         let i = B[i_idx];
-        let mut u = DVector::<f64>::zeros(z_B.len());
+        let mut u = Vector::zeros(z_B.len());
         u[i_idx] = 1.0;
         let u = u;
 
-        let mut delta_z = DVector::<f64>::zeros(m + n);
+        let mut delta_z = Vector::zeros(m + n);
         let v = A_B
             .transpose()
             .lu()

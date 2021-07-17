@@ -1,4 +1,4 @@
-use na::{DMatrix, DVector};
+use crate::{Matrix, Vector};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -27,9 +27,9 @@ pub fn read_file(path: &str) -> Result<String, String> {
  * by `solve_primal` or `solve_dual`
  */
 pub struct ParsedLP {
-    pub A: DMatrix<f64>,
-    pub b: DVector<f64>,
-    pub c: DVector<f64>,
+    pub A: Matrix,
+    pub b: Vector,
+    pub c: Vector,
     pub n: usize,
     pub m: usize,
 }
@@ -71,7 +71,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
 
     // Convert A from 2D vector to 1D vector with row-major storage
     let A: Vec<f64> = A.into_iter().flatten().collect();
-    let A = DMatrix::from_row_slice(m, n, &A);
+    let A = Matrix::from_row_slice(m, n, &A);
 
     // Grab the b column off of A
     let b = A.column(n - 1).clone_owned();
@@ -82,7 +82,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
     let mut A = A.insert_columns(n, m - 1, 0.0);
 
     // Compute the mxm identity matrix to append to A
-    let I = DMatrix::<f64>::identity(m, m);
+    let I = Matrix::identity(m, m);
 
     // Append I columns to A
     I.column_iter()
@@ -90,7 +90,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .for_each(|(i, val)| A.set_column(n + i, &val));
 
     let c_len = c.len();
-    let c = DVector::from_vec(c).insert_rows(c_len, m, 0.0);
+    let c = Vector::from_vec(c).insert_rows(c_len, m, 0.0);
 
     Ok(ParsedLP { A, b, c, n, m })
 }
