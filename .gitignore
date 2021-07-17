@@ -1,2 +1,4 @@
 /target
 *.tar.bz2
+graph.svg
+perf.data*
