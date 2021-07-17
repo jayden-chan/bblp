@@ -3,18 +3,18 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
+/**
+ * Read a file into a string (with error handling)
+ */
 pub fn read_file(path: &str) -> Result<String, String> {
-    // Create a path to the desired file
     let path = Path::new(path);
     let display = path.display();
 
-    // Open the path in read-only mode, returns `io::Result<File>`
     let mut file = match File::open(&path) {
         Err(why) => return Err(format!("couldn't open {}: {}", display, why)),
         Ok(file) => file,
     };
 
-    // Read the file contents into a string, returns `io::Result<usize>`
     let mut s = String::new();
     match file.read_to_string(&mut s) {
         Err(why) => Err(format!("couldn't read {}: {}", display, why)),
@@ -22,6 +22,10 @@ pub fn read_file(path: &str) -> Result<String, String> {
     }
 }
 
+/**
+ * Represents a parsed linear program which can be solved
+ * by `solve_primal` or `solve_dual`
+ */
 pub struct ParsedLP {
     pub A: DMatrix<f64>,
     pub b: DVector<f64>,
@@ -30,8 +34,12 @@ pub struct ParsedLP {
     pub m: usize,
 }
 
+/**
+ * Parse the contents of a file into the relevant matrices and vectors
+ * needed to solve it with the Revised Simplex Method
+ */
 pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
-    let mut lines = file_contents.lines();
+    let mut lines = file_contents.lines().filter(|c| !c.trim().is_empty());
     let c = lines.next();
 
     if c.is_none() {
@@ -43,7 +51,6 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .unwrap()
         .split_whitespace()
         .map(|val| val.parse::<f64>().unwrap())
-        .map(|val| if val == -0.0 { 0.0 } else { val })
         .collect();
 
     // Read the rest of the lines
@@ -51,7 +58,6 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .map(|l| {
             l.split_whitespace()
                 .map(|val| val.parse::<f64>().unwrap())
-                .map(|val| if val == -0.0 { 0.0 } else { val })
                 .collect()
         })
         .collect();
@@ -64,19 +70,19 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
     }
 
     // Convert A from 2D vector to 1D vector with row-major storage
-    let A: Vec<f64> = A.iter().flatten().map(f64::to_owned).collect();
+    let A: Vec<f64> = A.into_iter().flatten().collect();
     let A = DMatrix::from_row_slice(m, n, &A);
 
     // Grab the b column off of A
     let b = A.column(n - 1).clone_owned();
     let n = n - 1;
 
-    // Compute the mxm identity matrix to append to A
-    let I = DMatrix::<f64>::identity(m, m);
-
     // We will only insert m - 1 columnns into A since we can re-use the column that
     // was copied to `b` and no longer needed
     let mut A = A.insert_columns(n, m - 1, 0.0);
+
+    // Compute the mxm identity matrix to append to A
+    let I = DMatrix::<f64>::identity(m, m);
 
     // Append I columns to A
     I.column_iter()
@@ -84,7 +90,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .for_each(|(i, val)| A.set_column(n + i, &val));
 
     let c_len = c.len();
-    let c = DVector::from_vec(c).insert_rows(c_len, m + n - c_len, 0.0);
+    let c = DVector::from_vec(c).insert_rows(c_len, m, 0.0);
 
     Ok(ParsedLP { A, b, c, n, m })
 }

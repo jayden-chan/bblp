@@ -1,31 +1,43 @@
-use crate::util::{
-    mat_col_slice, materialize_view, round_sig_figs, vec_row_slice,
-};
+use crate::util::{col_slice, materialize_view, round_sig_figs, row_slice};
 use crate::EPSILON;
 use nalgebra::{DMatrix, DVector};
 use std::fmt;
 
+/**
+ * Number of significant figures to print in the results.
+ * (not the number of sig figs used in the calculations)
+ */
 const PRINT_SIG_FIGS: u32 = 7;
 
-pub struct SolutionResults {
+/**
+ * Represents an optimal solution to a linear program
+ */
+pub struct Solution {
     objective_value: f64,
     variable_values: Vec<f64>,
     pub B: Vec<usize>,
     pub N: Vec<usize>,
 }
 
-pub enum Solution {
+/**
+ * The possible outcomes of attempting to run
+ * the simplex method on a given linear program
+ */
+pub enum SolveResult {
     Infeasible,
     Unbounded,
-    Optimal(SolutionResults),
+    Optimal(Solution),
 }
 
-impl fmt::Display for Solution {
+/**
+ * Format the results
+ */
+impl fmt::Display for SolveResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Solution::Infeasible => write!(f, "infeasible"),
-            Solution::Unbounded => write!(f, "unbounded"),
-            Solution::Optimal(results) => {
+            SolveResult::Infeasible => write!(f, "infeasible"),
+            SolveResult::Unbounded => write!(f, "unbounded"),
+            SolveResult::Optimal(results) => {
                 let x_vals = results
                     .variable_values
                     .iter()
@@ -43,22 +55,27 @@ impl fmt::Display for Solution {
     }
 }
 
-pub fn solve_primal(
-    A: DMatrix<f64>,
-    b: DVector<f64>,
-    c: DVector<f64>,
-    n: usize,
-    m: usize,
+/**
+ * Primal simplex solve routine as described on
+ * slide 73 of lecture 14
+ */
+pub fn primal(
+    A: &DMatrix<f64>,
+    b: &DVector<f64>,
+    c: &DVector<f64>,
     B: Vec<usize>,
     N: Vec<usize>,
-) -> Result<Solution, String> {
+) -> Result<SolveResult, String> {
     let mut B = B;
     let mut N = N;
 
+    let n = N.len();
+    let m = B.len();
+
     let mut x = DVector::<f64>::zeros(m + n);
-    let x_B = mat_col_slice(&A, &B)
+    let x_B = col_slice(A, &B)
         .lu()
-        .solve(&b)
+        .solve(b)
         .ok_or_else(|| String::from("Failed to solve AB outer"))?;
     materialize_view(&mut x, &x_B, &B);
 
@@ -68,12 +85,12 @@ pub fn solve_primal(
 
     let mut iterations = 0;
     loop {
-        let x_B = vec_row_slice(&x, &B);
-        let c_B = vec_row_slice(&c, &B);
-        let c_N = vec_row_slice(&c, &N);
+        let x_B = row_slice(&x, &B);
+        let c_B = row_slice(c, &B);
+        let c_N = row_slice(c, &N);
 
-        let A_B = mat_col_slice(&A, &B);
-        let A_N = mat_col_slice(&A, &N);
+        let A_B = col_slice(A, &B);
+        let A_N = col_slice(A, &N);
 
         let v = A_B
             .transpose()
@@ -86,11 +103,9 @@ pub fn solve_primal(
         materialize_view(&mut z, &z_N, &N);
 
         if !(z_N.min() < -EPSILON) {
-            eprintln!("iterations = {}", iterations);
-
             let objective_value = (c_B.transpose() * x_B)[0];
-            return Ok(Solution::Optimal(SolutionResults {
-                variable_values: x.iter().take(n).map(|f| *f).collect(),
+            return Ok(SolveResult::Optimal(Solution {
+                variable_values: x.iter().take(n).copied().collect(),
                 objective_value,
                 B,
                 N,
@@ -107,7 +122,7 @@ pub fn solve_primal(
         materialize_view(&mut delta_x, &delta_x_B, &B);
 
         if !(delta_x.max() > EPSILON) {
-            return Ok(Solution::Unbounded);
+            return Ok(SolveResult::Unbounded);
         }
 
         let (t, i) = B
@@ -123,8 +138,8 @@ pub fn solve_primal(
                 }
             })
             // I sure hope the partial_cmp unwrap is safe here...
-            // This assignment has turned into more of an exercise in
-            // floating point quirks than linear programming
+            // This project has turned into more of an exercise in
+            // floating point safety than linear programming!
             .min_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap())
             .unwrap();
 
@@ -139,22 +154,27 @@ pub fn solve_primal(
     }
 }
 
-pub fn solve_dual(
-    A: DMatrix<f64>,
-    b: DVector<f64>,
-    c: DVector<f64>,
-    n: usize,
-    m: usize,
+/**
+ * Dual simplex solve routine as described on
+ * slide 97 of lecture 14
+ */
+pub fn dual(
+    A: &DMatrix<f64>,
+    b: &DVector<f64>,
+    c: &DVector<f64>,
     B: Vec<usize>,
     N: Vec<usize>,
-) -> Result<Solution, String> {
+) -> Result<SolveResult, String> {
     let mut B = B;
     let mut N = N;
 
-    let c_B = vec_row_slice(&c, &B);
-    let c_N = vec_row_slice(&c, &N);
-    let A_B = mat_col_slice(&A, &B);
-    let A_N = mat_col_slice(&A, &N);
+    let n = N.len();
+    let m = B.len();
+
+    let c_B = row_slice(c, &B);
+    let c_N = row_slice(c, &N);
+    let A_B = col_slice(A, &B);
+    let A_N = col_slice(A, &N);
 
     let mut z = DVector::<f64>::zeros(m + n);
     let v = A_B
@@ -171,25 +191,23 @@ pub fn solve_dual(
 
     let mut iterations = 0;
     loop {
-        let c_B = vec_row_slice(&c, &B);
-        let z_B = vec_row_slice(&z, &B);
-        let z_N = vec_row_slice(&z, &N);
-        let A_B = mat_col_slice(&A, &B);
-        let A_N = mat_col_slice(&A, &N);
+        let z_B = row_slice(&z, &B);
+        let z_N = row_slice(&z, &N);
+        let A_B = col_slice(A, &B);
+        let A_N = col_slice(A, &N);
+        let c_B = row_slice(c, &B);
 
         let mut x = DVector::<f64>::zeros(m + n);
-        let x_B = mat_col_slice(&A, &B)
+        let x_B = col_slice(A, &B)
             .lu()
-            .solve(&b)
+            .solve(b)
             .ok_or_else(|| String::from("Failed to solve AB outer"))?;
         materialize_view(&mut x, &x_B, &B);
 
         if !(x_B.min() < -EPSILON) {
-            eprintln!("iterations = {}", iterations);
-
             let objective_value = (c_B.transpose() * x_B)[0];
-            return Ok(Solution::Optimal(SolutionResults {
-                variable_values: x.iter().take(n).map(|f| *f).collect(),
+            return Ok(SolveResult::Optimal(Solution {
+                variable_values: x.iter().take(n).copied().collect(),
                 objective_value,
                 B,
                 N,
@@ -213,8 +231,7 @@ pub fn solve_dual(
         materialize_view(&mut delta_z, &delta_z_N, &N);
 
         if !(delta_z.max() > EPSILON) {
-            eprintln!("iterations = {}", iterations);
-            return Ok(Solution::Infeasible);
+            return Ok(SolveResult::Infeasible);
         }
 
         let (s, j) = N
@@ -232,7 +249,6 @@ pub fn solve_dual(
             .min_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap())
             .unwrap();
 
-        // eprintln!("s = {}", s);
         let sdzn = s * delta_z_N;
         materialize_view(&mut z, &(z_N.clone_owned() - sdzn), &N);
         z[i] = s;

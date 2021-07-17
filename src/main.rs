@@ -2,17 +2,16 @@
 
 extern crate nalgebra as na;
 
-use crate::solve::{solve_dual, solve_primal, Solution};
-use na::DVector;
-
-pub const EPSILON: f64 = 1e-6;
-
 mod parse;
 mod solve;
 mod util;
 
+use na::DVector;
+use solve::SolveResult;
+pub const EPSILON: f64 = 1e-6;
+
 fn main() -> Result<(), String> {
-    let (args, flags): (Vec<String>, Vec<String>) =
+    let (args, _flags): (Vec<String>, Vec<String>) =
         std::env::args().partition(|a| !a.starts_with("--"));
 
     let stdin = String::from("/dev/stdin");
@@ -24,42 +23,31 @@ fn main() -> Result<(), String> {
     let A = parsed.A;
     let b = parsed.b;
     let c = parsed.c;
-    let n = parsed.n;
-    let m = parsed.m;
     let N: Vec<usize> = (0..parsed.n).collect();
     let B: Vec<usize> = (parsed.n..parsed.n + parsed.m).collect();
-
-    if flags.iter().any(|f| f == "--debug") {
-        println!("{}", file_contents);
-        println!("N = {:?}", N);
-        println!("B = {:?}", B);
-        println!("c = {}", c);
-        println!("b = {}", b);
-        println!("A = {}", A);
-        println!("{0} starting solve {0}", "#".repeat(50));
-    }
 
     let solve_result = if !(b.min() < 0.0) {
         // Primal-feasible
         eprintln!("Solving primal problem");
-        solve_primal(A, b, c, n, m, B, N)?
+        solve::primal(&A, &b, &c, B, N)?
     } else if !(c.max() > 0.0) {
         // Dual-feasible
         eprintln!("Solving dual problem");
-        solve_dual(A, b, c, n, m, B, N)?
+        solve::dual(&A, &b, &c, B, N)?
     } else {
         let zero = DVector::<f64>::zeros(c.len());
         eprintln!("Solving aux problem");
-        match solve_dual(A.clone_owned(), b.clone_owned(), zero, n, m, B, N)? {
-            Solution::Optimal(aux_solution) => {
-                solve_primal(A, b, c, n, m, aux_solution.B, aux_solution.N)?
+
+        match solve::dual(&A, &b, &zero, B, N)? {
+            SolveResult::Optimal(aux_solution) => {
+                solve::primal(&A, &b, &c, aux_solution.B, aux_solution.N)?
             }
-            Solution::Unbounded => Solution::Infeasible,
-            Solution::Infeasible => Solution::Infeasible,
+            SolveResult::Unbounded | SolveResult::Infeasible => {
+                SolveResult::Infeasible
+            }
         }
     };
 
     println!("{}", solve_result);
-
     Ok(())
 }
