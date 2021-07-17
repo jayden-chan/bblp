@@ -3,9 +3,8 @@
 
 NAME=lp
 
-git clean -X -d -f
 mkdir $NAME
-cp -r src bundle.sh fulltest.sh install.sh Cargo.lock Cargo.toml Makefile README.md $NAME
+cp -r src ./lp_tests ./.cargo vendor bundle.sh fulltest.sh install.sh Cargo.lock Cargo.toml Makefile README.md $NAME
 tar -jcvf $NAME.tar.bz2 $NAME
 
-rm -r $NAME
+rm -rf $NAME

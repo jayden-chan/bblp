@@ -7,13 +7,13 @@ build:
 	cargo build --release
 
 build-local:
-	./cargo/bin/cargo build --release
+	./cargo/bin/cargo build --release --offline
 
 bundle:
 	./bundle.sh
 
 clean:
-	git clean -X -d -f
+	git clean -d -f
 
 lint:
 	cargo clippy -- -W clippy::pedantic

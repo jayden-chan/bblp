@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+#![allow(clippy::neg_cmp_op_on_partial_ord)]
+#![allow(clippy::many_single_char_names)]
 
 extern crate nalgebra as na;
 
@@ -15,10 +17,10 @@ pub const EPSILON: f64 = 1e-6;
 
 fn main() -> Result<(), String> {
     let (args, flags): (Vec<String>, Vec<String>) =
-        std::env::args().partition(|a| !a.starts_with("--"));
+        std::env::args().skip(1).partition(|a| !a.starts_with("--"));
 
     let stdin = String::from("/dev/stdin");
-    let path = args.get(1).unwrap_or(&stdin);
+    let path = args.get(0).unwrap_or(&stdin);
 
     let file_contents = parse::read_file(path)?;
     let parsed = parse::parse(&file_contents)?;
@@ -29,11 +31,11 @@ fn main() -> Result<(), String> {
     let N: Vec<usize> = (0..parsed.n).collect();
     let B: Vec<usize> = (parsed.n..parsed.n + parsed.m).collect();
 
-    let solve_result = if !(b.min() < 0.0) {
+    let solve_result = if !(b.min() < -f64::EPSILON) {
         // Primal-feasible
         eprintln!("Solving primal problem");
         solve::primal(&A, &b, &c, B, N)?
-    } else if !(c.max() > 0.0) {
+    } else if !(c.max() > f64::EPSILON) {
         // Dual-feasible
         eprintln!("Solving dual problem");
         solve::dual(&A, &b, &c, B, N)?

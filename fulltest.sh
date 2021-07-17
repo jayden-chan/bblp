@@ -2,6 +2,9 @@
 # vim: ft=sh
 
 export RUST_BACKTRACE=1
+TESTS_DIR="lp_tests"
+[ -d "./cargo" ] && CARGO="./cargo/bin/cargo" || CARGO="cargo"
+
 single="false"
 mode="debug"
 err_out="null"
@@ -17,13 +20,13 @@ do
             ;;
         --verbose) flags+=("--debug"); err_out="stderr"
             ;;
-        --easy) inputs=(./test_LPs/input/vanderbei* ./test_LPs/input/v2* ./test_LPs/input/445k21*)
+        --easy) inputs=(./$TESTS_DIR/input/vanderbei* ./$TESTS_DIR/input/v2* ./$TESTS_DIR/input/445k21*)
             ;;
-        --vanderbei) inputs=(./test_LPs/input/vanderbei*)
+        --vanderbei) inputs=(./$TESTS_DIR/input/vanderbei*)
             ;;
-        --vol2) inputs=(./test_LPs/input/v2*)
+        --vol2) inputs=(./$TESTS_DIR/input/v2*)
             ;;
-        --netlib) inputs=(./test_LPs/input/netlib*)
+        --netlib) inputs=(./$TESTS_DIR/input/netlib*)
             ;;
         *) inputs+=( "$1" ); single="true"
             ;;
@@ -31,12 +34,12 @@ do
     shift
 done
 
-(if [ "$mode" = "release" ]; then cargo build --release; else cargo build; fi) || exit
+(if [ "$mode" = "release" ]; then $CARGO build --release; else $CARGO build; fi) || exit
 
 execpath=./target/$mode/lp
 
 for input in $inputs; do
-    local output=$(echo $input | sed -E 's/input/output/')
+    output=$(sed -E 's/input/output/' <<< $input)
 
     if [ "$single" = "true" ]; then
         $execpath $input $flags
