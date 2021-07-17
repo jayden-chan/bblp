@@ -1,5 +1,5 @@
 use crate::util::{
-    inv, mat_col_slice, materialize_view, round_sig_figs, vec_row_slice,
+    mat_col_slice, materialize_view, round_sig_figs, vec_row_slice,
 };
 use crate::EPSILON;
 use nalgebra::{DMatrix, DVector};
@@ -88,13 +88,10 @@ pub fn solve_primal(
         if !(z_N.min() < -EPSILON) {
             eprintln!("iterations = {}", iterations);
 
-            let zeta_star = (c_B.transpose()
-                * inv(A_B).expect("AB inv inner").clone_owned()
-                * b.clone_owned())[0];
-
+            let objective_value = (c_B.transpose() * x_B)[0];
             return Ok(Solution::Optimal(SolutionResults {
-                objective_value: zeta_star,
                 variable_values: x.iter().take(n).map(|f| *f).collect(),
+                objective_value,
                 B,
                 N,
             }));
@@ -190,27 +187,19 @@ pub fn solve_dual(
         if !(x_B.min() < -EPSILON) {
             eprintln!("iterations = {}", iterations);
 
-            let zeta_star = (c_B.transpose()
-                * inv(A_B).expect("AB inv inner").clone_owned()
-                * b.clone_owned())[0];
-
+            let objective_value = (c_B.transpose() * x_B)[0];
             return Ok(Solution::Optimal(SolutionResults {
-                objective_value: zeta_star,
                 variable_values: x.iter().take(n).map(|f| *f).collect(),
+                objective_value,
                 B,
                 N,
             }));
         }
 
-        let i = *B.iter().find(|idx| x[**idx] < -EPSILON).unwrap();
+        let i_idx = B.iter().position(|idx| x[*idx] < -EPSILON).unwrap();
+        let i = B[i_idx];
         let mut u = DVector::<f64>::zeros(z_B.len());
-        B.iter().enumerate().for_each(|(k, b_idx)| {
-            if *b_idx == i {
-                u[k] = 1.0
-            } else {
-                u[k] = 0.0
-            }
-        });
+        u[i_idx] = 1.0;
         let u = u;
 
         let mut delta_z = DVector::<f64>::zeros(m + n);
@@ -243,6 +232,7 @@ pub fn solve_dual(
             .min_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap())
             .unwrap();
 
+        // eprintln!("s = {}", s);
         let sdzn = s * delta_z_N;
         materialize_view(&mut z, &(z_N.clone_owned() - sdzn), &N);
         z[i] = s;

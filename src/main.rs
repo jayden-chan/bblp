@@ -5,7 +5,7 @@ extern crate nalgebra as na;
 use crate::solve::{solve_dual, solve_primal, Solution};
 use na::DVector;
 
-pub const EPSILON: f64 = 0.0000001;
+pub const EPSILON: f64 = 1e-6;
 
 mod parse;
 mod solve;
@@ -36,7 +36,7 @@ fn main() -> Result<(), String> {
         println!("c = {}", c);
         println!("b = {}", b);
         println!("A = {}", A);
-        println!("{}", "#".repeat(50));
+        println!("{0} starting solve {0}", "#".repeat(50));
     }
 
     let solve_result = if !(b.min() < 0.0) {
