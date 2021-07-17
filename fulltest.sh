@@ -40,8 +40,8 @@ for input in $inputs; do
         echo
     else
         echo -n ${input:t:r}
-        local my_result=$($execpath $input 2>/dev/null)
-        local diff=$(git --no-pager diff --no-index =(echo $my_result) $output)
+        my_result=$($execpath $input 2>/dev/null)
+        diff=$(git --no-pager diff --no-index =(echo $my_result) $output)
         [[ "$?" = "0" ]] && echo " \e[1m\e[32mOK\e[0m" || (echo && echo "$diff" | diff-so-fancy)
     fi
 done
