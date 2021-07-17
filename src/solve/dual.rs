@@ -38,7 +38,7 @@ pub fn dual(
         return Err(String::from("Initial basis is not feasible."));
     }
 
-    let mut iterations = 0;
+    let mut pivots = 0;
     loop {
         let z_B = row_slice(&z, &B);
         let z_N = row_slice(&z, &N);
@@ -58,6 +58,7 @@ pub fn dual(
             return Ok(SolveResult::Optimal(Solution {
                 variable_values: x.iter().take(n).copied().collect(),
                 objective_value,
+                pivots,
                 B,
                 N,
             }));
@@ -106,6 +107,6 @@ pub fn dual(
         let N_replace_idx = N.iter().position(|idx| *idx == j).unwrap();
         B[B_replace_idx] = j;
         N[N_replace_idx] = i;
-        iterations += 1;
+        pivots += 1;
     }
 }

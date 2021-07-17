@@ -19,6 +19,7 @@ const PRINT_SIG_FIGS: u32 = 7;
 pub struct Solution {
     objective_value: f64,
     variable_values: Vec<f64>,
+    pivots: usize,
     pub B: Vec<usize>,
     pub N: Vec<usize>,
 }
@@ -34,7 +35,7 @@ pub enum SolveResult {
 }
 
 /**
- * Format the results
+ * Format the results for submission
  */
 impl fmt::Display for SolveResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -51,6 +52,33 @@ impl fmt::Display for SolveResult {
                 write!(
                     f,
                     "optimal\n{}\n{}",
+                    round_sig_figs(results.objective_value, PRINT_SIG_FIGS),
+                    x_vals
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Format the results for debugging
+ */
+impl fmt::Debug for SolveResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SolveResult::Infeasible => write!(f, "infeasible"),
+            SolveResult::Unbounded => write!(f, "unbounded"),
+            SolveResult::Optimal(results) => {
+                let x_vals = results
+                    .variable_values
+                    .iter()
+                    .map(|v| format!("{}", round_sig_figs(*v, PRINT_SIG_FIGS)))
+                    .collect::<Vec<String>>()
+                    .join(" ");
+                write!(
+                    f,
+                    "{} pivots\noptimal\n{}\n{}",
+                    results.pivots,
                     round_sig_figs(results.objective_value, PRINT_SIG_FIGS),
                     x_vals
                 )

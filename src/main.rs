@@ -11,7 +11,7 @@ use solve::SolveResult;
 pub const EPSILON: f64 = 1e-6;
 
 fn main() -> Result<(), String> {
-    let (args, _flags): (Vec<String>, Vec<String>) =
+    let (args, flags): (Vec<String>, Vec<String>) =
         std::env::args().partition(|a| !a.starts_with("--"));
 
     let stdin = String::from("/dev/stdin");
@@ -47,6 +47,10 @@ fn main() -> Result<(), String> {
             }
         }
     };
+
+    if flags.iter().any(|flag| flag == "--debug") {
+        eprintln!("{:?}", solve_result);
+    }
 
     println!("{}", solve_result);
     Ok(())

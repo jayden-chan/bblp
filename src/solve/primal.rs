@@ -31,7 +31,7 @@ pub fn primal(
         return Err(String::from("Initial basis is not feasible."));
     }
 
-    let mut iterations = 0;
+    let mut pivots = 0;
     loop {
         let x_B = row_slice(&x, &B);
         let c_B = row_slice(c, &B);
@@ -55,6 +55,7 @@ pub fn primal(
             return Ok(SolveResult::Optimal(Solution {
                 variable_values: x.iter().take(n).copied().collect(),
                 objective_value,
+                pivots,
                 B,
                 N,
             }));
@@ -98,6 +99,6 @@ pub fn primal(
         let N_replace_idx = N.iter().position(|idx| *idx == j).unwrap();
         B[B_replace_idx] = j;
         N[N_replace_idx] = i;
-        iterations += 1;
+        pivots += 1;
     }
 }
