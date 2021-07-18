@@ -1,11 +1,11 @@
-use crate::{Matrix, Vector, PERTURB_AMT};
+use crate::{Matrix, Vector, EPSILON, PERTURB_AMT};
 
 /**
  * Round `value` to `d` significant digits.
- * This function is only used on the resulting
- * objective value and points when there is an
- * optimal solution, it's not used in the `primal`
- * or `dual` functions for computing the solution.
+ * This function is only used for formatting the
+ * results, it is not used when actually computing
+ * the solution. It is necessary because Rust doesn't
+ * support the %g format specifier.
  */
 pub fn round_sig_figs(value: f64, d: u32) -> f64 {
     if value.abs() < f64::EPSILON {
@@ -21,6 +21,63 @@ pub fn round_sig_figs(value: f64, d: u32) -> f64 {
     }
 }
 
+/**
+ * Select the entering variable from the index set `N`
+ * based on Dantzig's largest-coefficient rule.
+ */
+pub fn select_entering(N: &[usize], coefs: &Vector) -> Option<(usize, usize)> {
+    let (_, j, j_idx) = N.iter().enumerate().fold(
+        (-EPSILON, 0, usize::MAX),
+        |acc, (idx, N_val)| {
+            let item = coefs[*N_val];
+            if item < acc.0 {
+                (item, *N_val, idx)
+            } else {
+                acc
+            }
+        },
+    );
+
+    // if j_idx still equals usize::MAX it means there are no
+    // negative coefficients so there cannot be a pivot.
+    if j_idx == usize::MAX {
+        None
+    } else {
+        Some((j, j_idx))
+    }
+}
+
+pub fn select_leaving(
+    B: &[usize],
+    vars: &Vector,
+    delta_vars: &Vector,
+) -> (f64, usize, usize) {
+    B.iter()
+        .enumerate()
+        .filter_map(|(idx, B_val)| {
+            let vars_i = vars[*B_val];
+            let delta_vars_i = delta_vars[*B_val];
+
+            if delta_vars_i > EPSILON {
+                Some((vars_i / delta_vars_i, *B_val, idx))
+            } else {
+                None
+            }
+        })
+        // I sure hope the partial_cmp unwrap is safe here...
+        // This project has turned into more of an exercise in
+        // floating point safety than linear programming!
+        .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
+        .unwrap()
+}
+
+/**
+ * Perturb the vector b based on the method described here:
+ * <https://people.math.carleton.ca/~kcheung/math/notes/MATH5801/1/01_perturb.html>
+ *
+ * This prevents cycling and allows the use of the largest-coefficient
+ * rule for all pivots.
+ */
 pub fn perturb(A: &Matrix, B: &[usize], b: &Vector) -> Vector {
     let A_B = col_slice(A, B);
     let m = A.nrows();

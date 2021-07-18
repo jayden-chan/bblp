@@ -19,5 +19,4 @@ overflow-checks = false
 [dependencies]
 
 [dependencies.nalgebra]
-version = "0.27.1"
-features = ["sparse"]
+version = "0.28.0"

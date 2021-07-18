@@ -1,5 +1,8 @@
 use crate::solve::{Solution, SolveResult};
-use crate::util::{col_slice, materialize_view, perturb, row_slice};
+use crate::util::{
+    col_slice, materialize_view, perturb, row_slice, select_entering,
+    select_leaving,
+};
 use crate::{Matrix, Vector, EPSILON};
 
 /**
@@ -12,13 +15,19 @@ pub fn primal(
     c: &Vector,
     B: Vec<usize>,
     N: Vec<usize>,
+    no_perturb: bool,
 ) -> Result<SolveResult, String> {
     let mut B = B;
     let mut N = N;
-    let b = perturb(A, &B, &b);
-
     let n = N.len();
     let m = B.len();
+
+    // Perturb the `b` vector if that setting is enabled
+    let b = if no_perturb {
+        b.clone_owned()
+    } else {
+        perturb(A, &B, b)
+    };
 
     let mut x = Vector::zeros(m + n);
     let x_B = col_slice(A, &B)
@@ -40,39 +49,29 @@ pub fn primal(
         let A_B = col_slice(A, &B);
         let A_N = col_slice(A, &N);
 
+        let mut z = Vector::zeros(m + n);
         let v = A_B
             .transpose()
             .lu()
             .solve(&c_B)
             .ok_or_else(|| String::from("Failed to solve A_B_T decomp"))?;
-
-        let mut z = Vector::zeros(m + n);
         let z_N = A_N.transpose() * v - c_N;
         materialize_view(&mut z, &z_N, &N);
 
-        if !(z_N.min() < -EPSILON) {
-            let objective_value = (c_B.transpose() * x_B)[0];
-            return Ok(SolveResult::Optimal(Solution {
-                variable_values: x.iter().take(n).copied().collect(),
-                objective_value,
-                pivots,
-                B,
-                N,
-            }));
-        }
-
-        // let j = *N.iter().find(|idx| z[**idx] < -EPSILON).unwrap();
-        let (_, j, j_idx) =
-            N.iter()
-                .enumerate()
-                .fold((-EPSILON, 0, 0), |acc, (idx, N_val)| {
-                    let item = z[*N_val];
-                    if item < acc.0 {
-                        (item, *N_val, idx)
-                    } else {
-                        acc
-                    }
-                });
+        let (j, j_idx) = match select_entering(&N, &z) {
+            // If there is no suitable entering variable it means we are done
+            None => {
+                let objective_value = (c_B.transpose() * x_B)[0];
+                return Ok(SolveResult::Optimal(Solution {
+                    variable_values: x.iter().take(n).copied().collect(),
+                    objective_value,
+                    pivots,
+                    B,
+                    N,
+                }));
+            }
+            Some((j, j_idx)) => (j, j_idx),
+        };
 
         let mut delta_x = Vector::zeros(m + n);
         let delta_x_B = A_B
@@ -86,25 +85,7 @@ pub fn primal(
             return Ok(SolveResult::Unbounded);
         }
 
-        let (t, i, i_idx) = B
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, B_val)| {
-                let x_i = x[*B_val];
-                let delta_x_i = delta_x[*B_val];
-
-                if delta_x_i > EPSILON {
-                    Some((x_i / delta_x_i, *B_val, idx))
-                } else {
-                    None
-                }
-            })
-            // I sure hope the partial_cmp unwrap is safe here...
-            // This project has turned into more of an exercise in
-            // floating point safety than linear programming!
-            .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
-            .unwrap();
-
+        let (t, i, i_idx) = select_leaving(&B, &x, &delta_x);
         materialize_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
         x[j] = t;
 

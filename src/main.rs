@@ -8,9 +8,10 @@ mod parse;
 mod solve;
 mod util;
 
+use std::collections::HashSet;
+
 use na::{DMatrix, DVector};
 use solve::SolveResult;
-
 pub type Matrix = DMatrix<f64>;
 pub type Vector = DVector<f64>;
 
@@ -35,6 +36,10 @@ fn main() -> Result<(), String> {
     let (args, flags): (Vec<String>, Vec<String>) =
         std::env::args().skip(1).partition(|a| !a.starts_with("--"));
 
+    let flags: HashSet<&str> = flags.iter().map(String::as_str).collect();
+    let f_debug = flags.contains("--debug");
+    let f_no_perturb = flags.contains("--no-perturb");
+
     let stdin = String::from("/dev/stdin");
     let path = args.get(0).unwrap_or(&stdin);
 
@@ -50,26 +55,31 @@ fn main() -> Result<(), String> {
     let solve_result = if !(b.min() < -f64::EPSILON) {
         // Primal-feasible
         eprintln!("Solving primal problem");
-        solve::primal(&A, &b, &c, B, N)?
+        solve::primal(&A, &b, &c, B, N, f_no_perturb)?
     } else if !(c.max() > f64::EPSILON) {
         // Dual-feasible
         eprintln!("Solving dual problem");
-        solve::dual(&A, &b, &c, B, N)?
+        solve::dual(&A, &b, &c, B, N, f_no_perturb)?
     } else {
         let zero = Vector::zeros(c.len());
         eprintln!("Solving aux problem");
 
-        match solve::dual(&A, &b, &zero, B, N)? {
-            SolveResult::Optimal(aux_solution) => {
-                solve::primal(&A, &b, &c, aux_solution.B, aux_solution.N)?
-            }
+        match solve::dual(&A, &b, &zero, B, N, f_no_perturb)? {
+            SolveResult::Optimal(aux_solution) => solve::primal(
+                &A,
+                &b,
+                &c,
+                aux_solution.B,
+                aux_solution.N,
+                f_no_perturb,
+            )?,
             SolveResult::Unbounded | SolveResult::Infeasible => {
                 SolveResult::Infeasible
             }
         }
     };
 
-    if flags.iter().any(|flag| flag == "--debug") {
+    if f_debug {
         eprintln!("{:?}", solve_result);
     } else {
         println!("{}", solve_result);

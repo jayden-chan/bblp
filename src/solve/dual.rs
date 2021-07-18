@@ -1,5 +1,8 @@
 use crate::solve::{Solution, SolveResult};
-use crate::util::{col_slice, materialize_view, perturb, row_slice};
+use crate::util::{
+    col_slice, materialize_view, perturb, row_slice, select_entering,
+    select_leaving,
+};
 use crate::{Matrix, Vector, EPSILON};
 
 /**
@@ -12,13 +15,19 @@ pub fn dual(
     c: &Vector,
     B: Vec<usize>,
     N: Vec<usize>,
+    no_perturb: bool,
 ) -> Result<SolveResult, String> {
     let mut B = B;
     let mut N = N;
-    let b = perturb(A, &B, b);
-
     let n = N.len();
     let m = B.len();
+
+    // Perturb the `b` vector if that setting is enabled
+    let b = if no_perturb {
+        b.clone_owned()
+    } else {
+        perturb(A, &B, b)
+    };
 
     let c_B = row_slice(c, &B);
     let c_N = row_slice(c, &N);
@@ -53,31 +62,22 @@ pub fn dual(
             .ok_or_else(|| String::from("Failed to solve AB outer"))?;
         materialize_view(&mut x, &x_B, &B);
 
-        if !(x_B.min() < -EPSILON) {
-            let objective_value = (c_B.transpose() * x_B)[0];
-            return Ok(SolveResult::Optimal(Solution {
-                variable_values: x.iter().take(n).copied().collect(),
-                objective_value,
-                pivots,
-                B,
-                N,
-            }));
-        }
+        let (i, i_idx) = match select_entering(&B, &x) {
+            // If there is no suitable entering variable it means we are done
+            None => {
+                let objective_value = (c_B.transpose() * x_B)[0];
+                return Ok(SolveResult::Optimal(Solution {
+                    variable_values: x.iter().take(n).copied().collect(),
+                    objective_value,
+                    pivots,
+                    B,
+                    N,
+                }));
+            }
+            Some((i, i_idx)) => (i, i_idx),
+        };
 
-        // let i_idx = B.iter().position(|idx| x[*idx] < -EPSILON).unwrap();
-        let (_, i, i_idx) =
-            B.iter()
-                .enumerate()
-                .fold((-EPSILON, 0, 0), |acc, (idx, B_val)| {
-                    let item = x[*B_val];
-                    if item < acc.0 {
-                        (item, *B_val, idx)
-                    } else {
-                        acc
-                    }
-                });
-
-        // let i = B[i_idx];
+        // Compute u as described on slide 91
         let mut u = Vector::zeros(z_B.len());
         u[i_idx] = 1.0;
         let u = u;
@@ -93,26 +93,10 @@ pub fn dual(
         materialize_view(&mut delta_z, &delta_z_N, &N);
 
         if !(delta_z.max() > EPSILON) {
-            eprintln!("{} pivots", pivots);
             return Ok(SolveResult::Infeasible);
         }
 
-        let (s, j, j_idx) = N
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, N_val)| {
-                let z_j = z[*N_val];
-                let delta_z_j = delta_z[*N_val];
-
-                if delta_z_j > EPSILON {
-                    Some((z_j / delta_z_j, *N_val, idx))
-                } else {
-                    None
-                }
-            })
-            .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
-            .unwrap();
-
+        let (s, j, j_idx) = select_leaving(&N, &z, &delta_z);
         let sdzn = s * delta_z_N;
         materialize_view(&mut z, &(z_N.clone_owned() - sdzn), &N);
         z[i] = s;

@@ -51,6 +51,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .unwrap()
         .split_whitespace()
         .map(|val| val.parse::<f64>().unwrap())
+        .map(|val| if val == -0.0 { 0.0 } else { val })
         .collect();
 
     // Read the rest of the lines
@@ -58,6 +59,7 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .map(|l| {
             l.split_whitespace()
                 .map(|val| val.parse::<f64>().unwrap())
+                .map(|val| if val == -0.0 { 0.0 } else { val })
                 .collect()
         })
         .collect();
