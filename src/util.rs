@@ -1,3 +1,9 @@
+/*
+ * CSC-445 Linear Program Solver
+ * Jayden Chan
+ * V00898517
+ */
+
 use crate::{Matrix, Vector, EPSILON, PERTURB_AMT};
 
 /**

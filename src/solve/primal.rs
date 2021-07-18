@@ -1,3 +1,9 @@
+/*
+ * CSC-445 Linear Program Solver
+ * Jayden Chan
+ * V00898517
+ */
+
 use crate::solve::{Solution, SolveResult};
 use crate::util::{
     col_slice, perturb, row_slice, select_entering, select_leaving, write_view,

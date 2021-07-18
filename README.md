@@ -57,3 +57,13 @@ that was given on slide 49 of lecture 8.
 The program uses a two-phase primal-dual method for solving initially infeasible
 problems. The dual simplex routine can be found in `src/solve/dual.rs` and the logic for
 running the dual simplex auxiliary problem can be found in `src/main.rs`
+
+## Numerical instability or cycling
+The program does not terminate when processing the following test inputs:
+- netlib_klein2
+- netlib_share1b
+- netlib_share2b
+
+I have investigated this issue thoroughly (about 20 hours) and did not find a solution. I
+believe that the problem is related to floating point numerical stability because it
+occurs even when using Bland's rule for pivoting.

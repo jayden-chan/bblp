@@ -1,3 +1,9 @@
+/*
+ * CSC-445 Linear Program Solver
+ * Jayden Chan
+ * V00898517
+ */
+
 use crate::util::round_sig_figs;
 use std::fmt;
 

@@ -1,3 +1,9 @@
+/*
+ * CSC-445 Linear Program Solver
+ * Jayden Chan
+ * V00898517
+ */
+
 #![allow(non_snake_case)]
 #![allow(clippy::neg_cmp_op_on_partial_ord)]
 #![allow(clippy::many_single_char_names)]
