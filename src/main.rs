@@ -13,7 +13,23 @@ use solve::SolveResult;
 
 pub type Matrix = DMatrix<f64>;
 pub type Vector = DVector<f64>;
-pub const EPSILON: f64 = 1e-6;
+
+/**
+ * Value used instead of 0 for checking when variables
+ * are negative/non-negative. This value was previously
+ * used to mitigate floating point problems with many
+ * of the netlib tests. I'm not sure if it's still
+ * necessary after implementing perturbation but I'm
+ * leaving it in anyway.
+ */
+pub const EPSILON: f64 = 1e-9;
+
+/**
+ * Perturbation amount copied from glpk source code.
+ * I'm not sure if there is a perscribed way for choosing
+ * this value other than for it to be "sufficiently small".
+ */
+pub const PERTURB_AMT: f64 = 1e-9;
 
 fn main() -> Result<(), String> {
     let (args, flags): (Vec<String>, Vec<String>) =
@@ -55,8 +71,9 @@ fn main() -> Result<(), String> {
 
     if flags.iter().any(|flag| flag == "--debug") {
         eprintln!("{:?}", solve_result);
+    } else {
+        println!("{}", solve_result);
     }
 
-    println!("{}", solve_result);
     Ok(())
 }

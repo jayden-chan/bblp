@@ -1,4 +1,4 @@
-use crate::{Matrix, Vector};
+use crate::{Matrix, Vector, PERTURB_AMT};
 
 /**
  * Round `value` to `d` significant digits.
@@ -19,6 +19,16 @@ pub fn round_sig_figs(value: f64, d: u32) -> f64 {
     } else {
         result
     }
+}
+
+pub fn perturb(A: &Matrix, B: &[usize], b: &Vector) -> Vector {
+    let A_B = col_slice(A, B);
+    let m = A.nrows();
+    let e = Vector::from_iterator(
+        m,
+        (0..m).map(|idx| PERTURB_AMT.powi(idx as i32 + 1)),
+    );
+    b + A_B * e
 }
 
 /********************************************************/

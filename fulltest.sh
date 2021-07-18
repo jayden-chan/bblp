@@ -7,6 +7,7 @@ TESTS_DIR="lp_tests"
 
 single="false"
 mode="debug"
+should_diff="false"
 err_out="null"
 inputs=()
 flags=()
@@ -20,7 +21,7 @@ do
             ;;
         --verbose) flags+=("--debug"); err_out="stderr"
             ;;
-        --easy) inputs=(./$TESTS_DIR/input/vanderbei* ./$TESTS_DIR/input/v2* ./$TESTS_DIR/input/445k21*)
+        --easy) inputs=(./$TESTS_DIR/input/vanderbei* ./$TESTS_DIR/input/v2* ./$TESTS_DIR/input/445k21* ./$TESTS_DIR/input/cycle.txt)
             ;;
         --vanderbei) inputs=(./$TESTS_DIR/input/vanderbei*)
             ;;
@@ -28,7 +29,9 @@ do
             ;;
         --netlib) inputs=(./$TESTS_DIR/input/netlib*)
             ;;
-        *) inputs+=( "$1" ); single="true"
+        --diff) should_diff="true"
+            ;;
+        *) inputs+=( "$1" )
             ;;
     esac
     shift
@@ -41,7 +44,7 @@ execpath=./target/$mode/lp
 for input in $inputs; do
     output=$(sed -E 's/input/output/' <<< $input)
 
-    if [ "$single" = "true" ]; then
+    if [ "$should_diff" = "false" ]; then
         $execpath $input $flags
         cat $output
         echo

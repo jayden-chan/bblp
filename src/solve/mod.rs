@@ -19,7 +19,7 @@ const PRINT_SIG_FIGS: u32 = 7;
 pub struct Solution {
     objective_value: f64,
     variable_values: Vec<f64>,
-    pivots: usize,
+    pub pivots: usize,
     pub B: Vec<usize>,
     pub N: Vec<usize>,
 }

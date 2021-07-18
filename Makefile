@@ -1,6 +1,6 @@
-all: install build-local
+all: install-rust build-local
 
-install:
+install-rust:
 	./install.sh
 
 build:
@@ -18,4 +18,4 @@ clean:
 lint:
 	cargo clippy -- -W clippy::pedantic
 
-.PHONY: install build build-local bundle clean lint
+.PHONY: install-rust build build-local bundle clean lint

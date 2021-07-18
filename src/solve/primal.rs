@@ -1,5 +1,5 @@
 use crate::solve::{Solution, SolveResult};
-use crate::util::{col_slice, materialize_view, row_slice};
+use crate::util::{col_slice, materialize_view, perturb, row_slice};
 use crate::{Matrix, Vector, EPSILON};
 
 /**
@@ -15,6 +15,7 @@ pub fn primal(
 ) -> Result<SolveResult, String> {
     let mut B = B;
     let mut N = N;
+    let b = perturb(A, &B, &b);
 
     let n = N.len();
     let m = B.len();
@@ -22,7 +23,7 @@ pub fn primal(
     let mut x = Vector::zeros(m + n);
     let x_B = col_slice(A, &B)
         .lu()
-        .solve(b)
+        .solve(&b)
         .ok_or_else(|| String::from("Failed to solve AB outer"))?;
     materialize_view(&mut x, &x_B, &B);
 
@@ -60,7 +61,19 @@ pub fn primal(
             }));
         }
 
-        let j = *N.iter().find(|idx| z[**idx] < -EPSILON).unwrap();
+        // let j = *N.iter().find(|idx| z[**idx] < -EPSILON).unwrap();
+        let (_, j, j_idx) =
+            N.iter()
+                .enumerate()
+                .fold((-EPSILON, 0, 0), |acc, (idx, N_val)| {
+                    let item = z[*N_val];
+                    if item < acc.0 {
+                        (item, *N_val, idx)
+                    } else {
+                        acc
+                    }
+                });
+
         let mut delta_x = Vector::zeros(m + n);
         let delta_x_B = A_B
             .lu()
@@ -73,14 +86,15 @@ pub fn primal(
             return Ok(SolveResult::Unbounded);
         }
 
-        let (t, i) = B
+        let (t, i, i_idx) = B
             .iter()
-            .filter_map(|idx| {
-                let x_i = x[*idx];
-                let delta_x_i = delta_x[*idx];
+            .enumerate()
+            .filter_map(|(idx, B_val)| {
+                let x_i = x[*B_val];
+                let delta_x_i = delta_x[*B_val];
 
                 if delta_x_i > EPSILON {
-                    Some((x_i / delta_x_i, *idx))
+                    Some((x_i / delta_x_i, *B_val, idx))
                 } else {
                     None
                 }
@@ -88,16 +102,14 @@ pub fn primal(
             // I sure hope the partial_cmp unwrap is safe here...
             // This project has turned into more of an exercise in
             // floating point safety than linear programming!
-            .min_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap())
+            .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
             .unwrap();
 
         materialize_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
         x[j] = t;
 
-        let B_replace_idx = B.iter().position(|idx| *idx == i).unwrap();
-        let N_replace_idx = N.iter().position(|idx| *idx == j).unwrap();
-        B[B_replace_idx] = j;
-        N[N_replace_idx] = i;
+        B[i_idx] = j;
+        N[j_idx] = i;
         pivots += 1;
     }
 }

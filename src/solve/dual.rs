@@ -1,5 +1,5 @@
 use crate::solve::{Solution, SolveResult};
-use crate::util::{col_slice, materialize_view, row_slice};
+use crate::util::{col_slice, materialize_view, perturb, row_slice};
 use crate::{Matrix, Vector, EPSILON};
 
 /**
@@ -15,6 +15,7 @@ pub fn dual(
 ) -> Result<SolveResult, String> {
     let mut B = B;
     let mut N = N;
+    let b = perturb(A, &B, b);
 
     let n = N.len();
     let m = B.len();
@@ -48,7 +49,7 @@ pub fn dual(
         let mut x = Vector::zeros(m + n);
         let x_B = col_slice(A, &B)
             .lu()
-            .solve(b)
+            .solve(&b)
             .ok_or_else(|| String::from("Failed to solve AB outer"))?;
         materialize_view(&mut x, &x_B, &B);
 
@@ -63,8 +64,20 @@ pub fn dual(
             }));
         }
 
-        let i_idx = B.iter().position(|idx| x[*idx] < -EPSILON).unwrap();
-        let i = B[i_idx];
+        // let i_idx = B.iter().position(|idx| x[*idx] < -EPSILON).unwrap();
+        let (_, i, i_idx) =
+            B.iter()
+                .enumerate()
+                .fold((-EPSILON, 0, 0), |acc, (idx, B_val)| {
+                    let item = x[*B_val];
+                    if item < acc.0 {
+                        (item, *B_val, idx)
+                    } else {
+                        acc
+                    }
+                });
+
+        // let i = B[i_idx];
         let mut u = Vector::zeros(z_B.len());
         u[i_idx] = 1.0;
         let u = u;
@@ -80,32 +93,32 @@ pub fn dual(
         materialize_view(&mut delta_z, &delta_z_N, &N);
 
         if !(delta_z.max() > EPSILON) {
+            eprintln!("{} pivots", pivots);
             return Ok(SolveResult::Infeasible);
         }
 
-        let (s, j) = N
+        let (s, j, j_idx) = N
             .iter()
-            .filter_map(|idx| {
-                let z_j = z[*idx];
-                let delta_z_j = delta_z[*idx];
+            .enumerate()
+            .filter_map(|(idx, N_val)| {
+                let z_j = z[*N_val];
+                let delta_z_j = delta_z[*N_val];
 
                 if delta_z_j > EPSILON {
-                    Some((z_j / delta_z_j, *idx))
+                    Some((z_j / delta_z_j, *N_val, idx))
                 } else {
                     None
                 }
             })
-            .min_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap())
+            .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
             .unwrap();
 
         let sdzn = s * delta_z_N;
         materialize_view(&mut z, &(z_N.clone_owned() - sdzn), &N);
         z[i] = s;
 
-        let B_replace_idx = B.iter().position(|idx| *idx == i).unwrap();
-        let N_replace_idx = N.iter().position(|idx| *idx == j).unwrap();
-        B[B_replace_idx] = j;
-        N[N_replace_idx] = i;
+        B[i_idx] = j;
+        N[j_idx] = i;
         pivots += 1;
     }
 }
