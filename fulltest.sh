@@ -2,15 +2,18 @@
 # vim: ft=sh
 
 export RUST_BACKTRACE=1
+
 TESTS_DIR="lp_tests"
-[ -d "./cargo" ] && CARGO="./cargo/bin/cargo" || CARGO="cargo"
 
 single="false"
+cargo_exe="cargo"
 opt_level="release"
 mode="cmp"
 err_out="null"
 inputs=()
 flags=()
+
+[ -d "./cargo" ] && cargo_exe="./cargo/bin/cargo"
 
 while test $# -gt 0
 do
@@ -44,27 +47,27 @@ do
     shift
 done
 
-(if [ "$opt_level" = "release" ]; then $CARGO build --release; else $CARGO build; fi) || exit
-
+(if [ "$opt_level" = "release" ]; then $cargo_exe build --release; else $cargo_exe build; fi) || exit
 execpath=./target/$opt_level/lp
 
-for input in $inputs; do
-    output=$(sed -E 's/input/output/' <<< $input)
+for input in $inputs
+do
+    output=$(sed -E 's/input/output/' <<< "$input")
 
     case "$mode" in
         pure)
-            $execpath < $input
+            $execpath < "$input"
             ;;
         cmp)
-            time $execpath $input $flags
-            cat $output
+            time $execpath "$input" $flags
+            cat "$output"
             echo
             ;;
         diff)
             echo -n "\e[1m${input:t:r} \e[0m"
             [[ "$err_out" = "stderr" ]] && echo
-            my_result=$($execpath $input $flags 2>/dev/$err_out)
-            diff=$(git --no-pager diff --no-index =(echo $my_result) $output)
+            my_result=$($execpath "$input" $flags 2>/dev/$err_out)
+            diff=$(git --no-pager diff --no-index =(echo $my_result) "$output")
             [[ "$?" = "0" ]] && echo "\e[1m\e[32mOK\e[0m" || (echo && echo "$diff" | diff-so-fancy)
             [[ "$err_out" = "stderr" ]] && echo
             ;;
