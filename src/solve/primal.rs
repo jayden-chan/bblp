@@ -1,7 +1,6 @@
 use crate::solve::{Solution, SolveResult};
 use crate::util::{
-    col_slice, materialize_view, perturb, row_slice, select_entering,
-    select_leaving,
+    col_slice, perturb, row_slice, select_entering, select_leaving, write_view,
 };
 use crate::{Matrix, Vector, EPSILON};
 
@@ -33,8 +32,8 @@ pub fn primal(
     let x_B = col_slice(A, &B)
         .lu()
         .solve(&b)
-        .ok_or_else(|| String::from("Failed to solve AB outer"))?;
-    materialize_view(&mut x, &x_B, &B);
+        .ok_or_else(|| String::from("Failed to for x_B"))?;
+    write_view(&mut x, &x_B, &B);
 
     if x_B.min() < -EPSILON {
         return Err(String::from("Initial basis is not feasible."));
@@ -54,9 +53,9 @@ pub fn primal(
             .transpose()
             .lu()
             .solve(&c_B)
-            .ok_or_else(|| String::from("Failed to solve A_B_T decomp"))?;
+            .ok_or_else(|| String::from("Failed to solve for v"))?;
         let z_N = A_N.transpose() * v - c_N;
-        materialize_view(&mut z, &z_N, &N);
+        write_view(&mut z, &z_N, &N);
 
         let (j, j_idx) = match select_entering(&N, &z) {
             // If there is no suitable entering variable it means we are done
@@ -79,14 +78,14 @@ pub fn primal(
             .solve(&A.column(j))
             .ok_or_else(|| String::from("Failed to solve for delta_x_B"))?;
 
-        materialize_view(&mut delta_x, &delta_x_B, &B);
+        write_view(&mut delta_x, &delta_x_B, &B);
 
         if !(delta_x.max() > EPSILON) {
             return Ok(SolveResult::Unbounded);
         }
 
         let (t, i, i_idx) = select_leaving(&B, &x, &delta_x);
-        materialize_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
+        write_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
         x[j] = t;
 
         B[i_idx] = j;

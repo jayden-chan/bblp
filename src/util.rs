@@ -124,7 +124,7 @@ pub fn row_slice(V: &Vector, idxs: &[usize]) -> Vector {
  * Copy the elements from `view` into `main` according
  * to the indices given by `idxs`.
  */
-pub fn materialize_view(main: &mut Vector, view: &Vector, idxs: &[usize]) {
+pub fn write_view(main: &mut Vector, view: &Vector, idxs: &[usize]) {
     idxs.iter()
         .enumerate()
         .for_each(|(e, i)| main[*i] = view[e]);

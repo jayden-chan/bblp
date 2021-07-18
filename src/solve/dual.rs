@@ -1,7 +1,6 @@
 use crate::solve::{Solution, SolveResult};
 use crate::util::{
-    col_slice, materialize_view, perturb, row_slice, select_entering,
-    select_leaving,
+    col_slice, perturb, row_slice, select_entering, select_leaving, write_view,
 };
 use crate::{Matrix, Vector, EPSILON};
 
@@ -39,9 +38,9 @@ pub fn dual(
         .transpose()
         .lu()
         .solve(&c_B)
-        .ok_or_else(|| String::from("Failed to solve A_B_T decomp"))?;
+        .ok_or_else(|| String::from("Failed to solve for v"))?;
     let z_N = A_N.transpose() * v - c_N;
-    materialize_view(&mut z, &z_N, &N);
+    write_view(&mut z, &z_N, &N);
 
     if z_N.min() < -EPSILON {
         return Err(String::from("Initial basis is not feasible."));
@@ -59,8 +58,8 @@ pub fn dual(
         let x_B = col_slice(A, &B)
             .lu()
             .solve(&b)
-            .ok_or_else(|| String::from("Failed to solve AB outer"))?;
-        materialize_view(&mut x, &x_B, &B);
+            .ok_or_else(|| String::from("Failed to solve for x_B"))?;
+        write_view(&mut x, &x_B, &B);
 
         let (i, i_idx) = match select_entering(&B, &x) {
             // If there is no suitable entering variable it means we are done
@@ -87,18 +86,18 @@ pub fn dual(
             .transpose()
             .lu()
             .solve(&u)
-            .expect("Failed to solve for delta_z_N");
-        let delta_z_N = -(A_N.transpose() * v);
+            .ok_or_else(|| String::from("Failed to solve for v"))?;
 
-        materialize_view(&mut delta_z, &delta_z_N, &N);
+        let delta_z_N = -(A_N.transpose() * v);
+        write_view(&mut delta_z, &delta_z_N, &N);
 
         if !(delta_z.max() > EPSILON) {
             return Ok(SolveResult::Infeasible);
         }
 
         let (s, j, j_idx) = select_leaving(&N, &z, &delta_z);
-        let sdzn = s * delta_z_N;
-        materialize_view(&mut z, &(z_N.clone_owned() - sdzn), &N);
+        let z_N = z_N.clone_owned() - s * delta_z_N;
+        write_view(&mut z, &z_N, &N);
         z[i] = s;
 
         B[i_idx] = j;

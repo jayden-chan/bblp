@@ -53,14 +53,21 @@ fn main() -> Result<(), String> {
     let B: Vec<usize> = (parsed.n..parsed.n + parsed.m).collect();
 
     let solve_result = if !(b.min() < -f64::EPSILON) {
-        // Primal-feasible
+        /********************************************************/
+        /*                   Primal feasible                    */
+        /********************************************************/
         eprintln!("Solving primal problem");
         solve::primal(&A, &b, &c, B, N, f_no_perturb)?
     } else if !(c.max() > f64::EPSILON) {
-        // Dual-feasible
+        /********************************************************/
+        /*                    Dual feasible                     */
+        /********************************************************/
         eprintln!("Solving dual problem");
         solve::dual(&A, &b, &c, B, N, f_no_perturb)?
     } else {
+        /********************************************************/
+        /*                 Initially infeasible                 */
+        /********************************************************/
         let zero = Vector::zeros(c.len());
         eprintln!("Solving aux problem");
 

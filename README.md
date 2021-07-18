@@ -1,12 +1,17 @@
 CSC-445 Linear Program Solver
 =============================
 
+- Jayden Chan
+- V00898517
+
 Installation for linux.csc.uvic.ca
 ----------------------------------
 
-Execute `make`. This will install the Rust toolchain to the current directory **only**.
-After installation it will compile the program. The resulting binary is called `lp` and
-will be present in the same directory as the Makefile.
+Execute `make`.
+
+This will install the Rust toolchain to the current directory **only**.  After
+installation it will compile the program. The resulting binary is called `lp` and will be
+present in the same directory as the Makefile.
 
 If it is necessary to re-compile the program, run `make build-local`.
 

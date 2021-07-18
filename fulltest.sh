@@ -10,7 +10,7 @@ opt_level="release"
 mode="cmp"
 err_out="null"
 inputs=()
-flags=("--no-perturb")
+flags=()
 
 while test $# -gt 0
 do
