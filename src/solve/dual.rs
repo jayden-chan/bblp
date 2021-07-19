@@ -45,6 +45,8 @@ pub fn dual(
     let A_B = col_view(A, &B);
     let A_N = col_view(A, &N);
 
+    // Compute z by solving A_B^T * v = c_B then setting z_N = A_N^T * v - c_N
+    // (slide 103)
     let mut z = Vector::zeros(m + n);
     let v = A_B
         .transpose()
@@ -66,6 +68,8 @@ pub fn dual(
         let A_N = col_view(A, &N);
         let c_B = row_view(c, &B);
 
+        // Compute x_B by solving A_B * x_B = b
+        // (slide 103)
         let mut x = Vector::zeros(m + n);
         let x_B = col_view(A, &B)
             .lu()
@@ -95,6 +99,8 @@ pub fn dual(
         u[i_idx] = 1.0;
         let u = u;
 
+        // Compute delta_z_N by solving A_B^T * v = u and setting z_N = -A_N^T * v
+        // (slide 104)
         let mut delta_z = Vector::zeros(m + n);
         let v = A_B
             .transpose()
@@ -114,8 +120,8 @@ pub fn dual(
 
         let z_N = z_N.clone_owned() - s * delta_z_N;
         write_view(&mut z, &z_N, &N);
-        z[i] = s;
 
+        z[i] = s;
         B[i_idx] = j;
         N[j_idx] = i;
         pivots += 1;

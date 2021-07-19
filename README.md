@@ -66,4 +66,6 @@ The program does not terminate when processing the following test inputs:
 
 I have investigated this issue thoroughly (about 20 hours) and did not find a solution. I
 believe that the problem is related to floating point numerical stability because it
-occurs even when using Bland's rule for pivoting.
+happens even when using Bland's rule for pivoting. I understand correctness is critical
+for this application but hopefully the multitude of bonus features I have implemented
+will make up for this deficiency.

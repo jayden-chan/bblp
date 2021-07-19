@@ -34,6 +34,8 @@ pub fn primal(
         perturb(A, &B, b)
     };
 
+    // Compute x_B by solving A_B * x_B = b
+    // (slide 103)
     let mut x = Vector::zeros(m + n);
     let x_B = col_view(A, &B)
         .lu()
@@ -54,6 +56,8 @@ pub fn primal(
         let A_B = col_view(A, &B);
         let A_N = col_view(A, &N);
 
+        // Compute z by solving A_B^T * v = c_B then setting z_N = A_N^T * v - c_N
+        // (slide 103)
         let mut z = Vector::zeros(m + n);
         let v = A_B
             .transpose()
@@ -80,6 +84,8 @@ pub fn primal(
             Some((j, j_idx)) => (j, j_idx),
         };
 
+        // Compute delta_x_B by solving A_B * delta_x_B = Aj
+        // (slide 103)
         let mut delta_x = Vector::zeros(m + n);
         let delta_x_B = A_B
             .lu()
@@ -96,8 +102,8 @@ pub fn primal(
         };
 
         write_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
-        x[j] = t;
 
+        x[j] = t;
         B[i_idx] = j;
         N[j_idx] = i;
         pivots += 1;
