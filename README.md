@@ -1,6 +1,18 @@
 CSC-445 Linear Program Solver
 =============================
 
+`bblp` is a simple linear program solver. It was originally built for an assignment in
+CSC-445: Operations Research: Linear Programming at the University of Victoria.
+
+Installation
+------------
+
+```
+git clone git@github.com:jayden-chan/bblp.git
+cd bblp
+cargo build --release
+```
+
 Installation for linux.csc.uvic.ca
 ----------------------------------
 
