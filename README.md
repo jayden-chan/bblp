@@ -13,7 +13,7 @@ This will install the Rust toolchain to the current directory **only**.  After
 installation it will compile the program. The resulting binary is called `lp` and will be
 present in the same directory as the Makefile.
 
-If it is necessary to re-compile the program, run `make build-local`.
+If it is necessary to re-compile the program, just run `make build-local`.
 
 Feature Overview
 ----------------
