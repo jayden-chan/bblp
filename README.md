@@ -19,8 +19,8 @@ Installation for linux.csc.uvic.ca
 Execute `make`.
 
 This will install the Rust toolchain to the current directory **only**.  After
-installation it will compile the program. The resulting binary is called `lp` and will be
-present in the same directory as the Makefile. This should take about 2 minutes.
+installation it will compile the program. The resulting binary is called `bblp` and will
+be present in the same directory as the Makefile. This should take about 2 minutes.
 
 If it is necessary to re-compile the program, just run `make build-local`.
 
@@ -55,8 +55,8 @@ The routine is called `perturb` and can be found in `src/utils.rs`.
 To prove that the implementation of perturbation does indeed prevent cycling, you can run
 the cycle-testing LP which I have included:
 ```
-./lp < ./lp_tests/input/cycle.txt
-./lp --no-perturb < ./lp_tests/input/cycle.txt
+./bblp < ./lp_tests/input/cycle.txt
+./bblp --no-perturb < ./lp_tests/input/cycle.txt
 ```
 You will see that the program computes the correct optimal solution with perturbation
 enabled but cycles without it. This LP is the same example of largest-coefficient cycling

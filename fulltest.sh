@@ -62,7 +62,7 @@ do
 done
 
 (if [ "$opt_level" = "release" ]; then $cargo_exe build --release; else $cargo_exe build; fi) || exit
-execpath=./target/$opt_level/lp
+execpath=./target/$opt_level/bblp
 
 for input in $inputs
 do

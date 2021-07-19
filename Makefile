@@ -8,7 +8,7 @@ build:
 
 build-local:
 	./cargo/bin/cargo build --release --offline
-	mv ./target/release/lp .
+	mv ./target/release/bblp .
 
 bundle:
 	./bundle.sh

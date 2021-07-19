@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with bblp. If not, see <https://www.gnu.org/licenses/>.
 
-NAME=lp
+NAME=bblp
 
 mkdir $NAME
 cp -r src ./lp_tests .cargo vendor bundle.sh fulltest.sh install.sh Cargo.lock Cargo.toml Makefile README.md $NAME
