@@ -27,7 +27,13 @@ pub fn dual(
     let n = N.len();
     let m = B.len();
 
-    // Perturb the `b` vector if that setting is enabled
+    // Perturb the `b` vector if that setting is enabled. I've been
+    // doing a bit more reading on perturbation since I originally implemented
+    // it and now I'm not actually sure if this has any effect for the dual simplex
+    // algorithm. The source I was going off of only described perturbation for the
+    // primal method, and I just applied that here too. But I think for dual simplex
+    // a different perturbation method is needed. I wasn't able to figure this out
+    // before the deadline.
     let b = if no_perturb {
         b.clone_owned()
     } else {
@@ -97,11 +103,11 @@ pub fn dual(
         let delta_z_N = -(A_N.transpose() * v);
         write_view(&mut delta_z, &delta_z_N, &N);
 
-        if !(delta_z.max() > EPSILON) {
-            return Ok(SolveResult::Infeasible);
-        }
+        let (s, j, j_idx) = match select_leaving(&N, &z, &delta_z) {
+            None => return Ok(SolveResult::Infeasible),
+            Some(p) => p,
+        };
 
-        let (s, j, j_idx) = select_leaving(&N, &z, &delta_z);
         let z_N = z_N.clone_owned() - s * delta_z_N;
         write_view(&mut z, &z_N, &N);
         z[i] = s;

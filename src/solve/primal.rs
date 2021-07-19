@@ -86,11 +86,11 @@ pub fn primal(
 
         write_view(&mut delta_x, &delta_x_B, &B);
 
-        if !(delta_x.max() > EPSILON) {
-            return Ok(SolveResult::Unbounded);
-        }
+        let (t, i, i_idx) = match select_leaving(&B, &x, &delta_x) {
+            None => return Ok(SolveResult::Unbounded),
+            Some(p) => p,
+        };
 
-        let (t, i, i_idx) = select_leaving(&B, &x, &delta_x);
         write_view(&mut x, &(x_B.clone_owned() - t * delta_x_B), &B);
         x[j] = t;
 

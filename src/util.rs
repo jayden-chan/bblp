@@ -32,32 +32,25 @@ pub fn round_sig_figs(value: f64, d: u32) -> f64 {
  * based on Dantzig's largest-coefficient rule.
  */
 pub fn select_entering(N: &[usize], coefs: &Vector) -> Option<(usize, usize)> {
-    let (_, j, j_idx) = N.iter().enumerate().fold(
-        (-EPSILON, 0, usize::MAX),
-        |acc, (idx, N_val)| {
+    N.iter()
+        .enumerate()
+        .filter_map(|(idx, N_val)| {
             let item = coefs[*N_val];
-            if item < acc.0 {
-                (item, *N_val, idx)
+            if item < -EPSILON {
+                Some((item, *N_val, idx))
             } else {
-                acc
+                None
             }
-        },
-    );
-
-    // if j_idx still equals usize::MAX it means there are no
-    // negative coefficients so there cannot be a pivot.
-    if j_idx == usize::MAX {
-        None
-    } else {
-        Some((j, j_idx))
-    }
+        })
+        .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
+        .map(|(_, j, j_idx)| (j, j_idx))
 }
 
 pub fn select_leaving(
     B: &[usize],
     vars: &Vector,
     delta_vars: &Vector,
-) -> (f64, usize, usize) {
+) -> Option<(f64, usize, usize)> {
     B.iter()
         .enumerate()
         .filter_map(|(idx, B_val)| {
@@ -74,7 +67,6 @@ pub fn select_leaving(
         // This project has turned into more of an exercise in
         // floating point safety than linear programming!
         .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
-        .unwrap()
 }
 
 /**
