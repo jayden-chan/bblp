@@ -6,7 +6,7 @@
 
 use crate::solve::{Solution, SolveResult};
 use crate::util::{
-    col_slice, perturb, row_slice, select_entering, select_leaving, write_view,
+    col_view, perturb, row_view, select_entering, select_leaving, write_view,
 };
 use crate::{Matrix, Vector, EPSILON};
 
@@ -40,10 +40,10 @@ pub fn dual(
         perturb(A, &B, b)
     };
 
-    let c_B = row_slice(c, &B);
-    let c_N = row_slice(c, &N);
-    let A_B = col_slice(A, &B);
-    let A_N = col_slice(A, &N);
+    let c_B = row_view(c, &B);
+    let c_N = row_view(c, &N);
+    let A_B = col_view(A, &B);
+    let A_N = col_view(A, &N);
 
     let mut z = Vector::zeros(m + n);
     let v = A_B
@@ -60,21 +60,23 @@ pub fn dual(
 
     let mut pivots = 0;
     loop {
-        let z_B = row_slice(&z, &B);
-        let z_N = row_slice(&z, &N);
-        let A_B = col_slice(A, &B);
-        let A_N = col_slice(A, &N);
-        let c_B = row_slice(c, &B);
+        let z_B = row_view(&z, &B);
+        let z_N = row_view(&z, &N);
+        let A_B = col_view(A, &B);
+        let A_N = col_view(A, &N);
+        let c_B = row_view(c, &B);
 
         let mut x = Vector::zeros(m + n);
-        let x_B = col_slice(A, &B)
+        let x_B = col_view(A, &B)
             .lu()
             .solve(&b)
             .ok_or_else(|| String::from("Failed to solve for x_B"))?;
         write_view(&mut x, &x_B, &B);
 
+        // Select our entering variable using the largest coefficient rule.
+        // If there is no suitable entering variable it means we have
+        // reached an optimal solution.
         let (i, i_idx) = match select_entering(&B, &x) {
-            // If there is no suitable entering variable it means we are done
             None => {
                 let objective_value = (c_B.transpose() * x_B)[0];
                 return Ok(SolveResult::Optimal(Solution {
@@ -103,6 +105,8 @@ pub fn dual(
         let delta_z_N = -(A_N.transpose() * v);
         write_view(&mut delta_z, &delta_z_N, &N);
 
+        // Select our leaving variable. If there is no leaving
+        // variable the problem is unbounded (primal infeasible)
         let (s, j, j_idx) = match select_leaving(&N, &z, &delta_z) {
             None => return Ok(SolveResult::Infeasible),
             Some(p) => p,

@@ -10,8 +10,7 @@ use crate::{Matrix, Vector, EPSILON, PERTURB_AMT};
  * Round `value` to `d` significant digits.
  * This function is only used for formatting the
  * results, it is not used when actually computing
- * the solution. It is necessary because Rust doesn't
- * support the %g format specifier.
+ * the solution.
  */
 pub fn round_sig_figs(value: f64, d: u32) -> f64 {
     if value.abs() < f64::EPSILON {
@@ -46,6 +45,11 @@ pub fn select_entering(N: &[usize], coefs: &Vector) -> Option<(usize, usize)> {
         .map(|(_, j, j_idx)| (j, j_idx))
 }
 
+/**
+ * Select the leaving variable based on the index set `B`,
+ * the values of the optimization variables, and the deltas
+ * of the optimization variables.
+ */
 pub fn select_leaving(
     B: &[usize],
     vars: &Vector,
@@ -65,7 +69,9 @@ pub fn select_leaving(
         })
         // I sure hope the partial_cmp unwrap is safe here...
         // This project has turned into more of an exercise in
-        // floating point safety than linear programming!
+        // floating point safety than linear programming! I think
+        // the only way the partial comparison could fail is if
+        // one of the values is Infinity, so I think this is safe.
         .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
 }
 
@@ -77,7 +83,7 @@ pub fn select_leaving(
  * rule for all pivots.
  */
 pub fn perturb(A: &Matrix, B: &[usize], b: &Vector) -> Vector {
-    let A_B = col_slice(A, B);
+    let A_B = col_view(A, B);
     let m = A.nrows();
     let e = Vector::from_iterator(
         m,
@@ -98,7 +104,7 @@ pub fn perturb(A: &Matrix, B: &[usize], b: &Vector) -> Vector {
  * Construct a new matrix consisting of the columns from `M`
  * given by the indices from `idxs`
  */
-pub fn col_slice(M: &Matrix, idxs: &[usize]) -> Matrix {
+pub fn col_view(M: &Matrix, idxs: &[usize]) -> Matrix {
     let mut ret = Matrix::zeros(M.nrows(), idxs.len());
     idxs.iter()
         .enumerate()
@@ -110,7 +116,7 @@ pub fn col_slice(M: &Matrix, idxs: &[usize]) -> Matrix {
  * Construct a new vector consisting of the elements from `V`
  * given by the indices from `idxs`
  */
-pub fn row_slice(V: &Vector, idxs: &[usize]) -> Vector {
+pub fn row_view(V: &Vector, idxs: &[usize]) -> Vector {
     let mut ret = Vector::zeros(idxs.len());
     idxs.iter()
         .enumerate()

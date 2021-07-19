@@ -32,9 +32,15 @@ pub type Vector = DVector<f64>;
 pub const EPSILON: f64 = 1e-9;
 
 /**
- * Perturbation amount copied from glpk source code.
- * I'm not sure if there is a perscribed way for choosing
+ * Perturbation amount is copied from glpk source code.
+ * I'm not sure if there is a prescribed way for choosing
  * this value other than for it to be "sufficiently small".
+ *
+ * Edit: again after doing more research on perturbation I
+ * think the value used in glpk is for a completely different
+ * kind of perturbation than the kind I'm using. My implementation
+ * does indeed prevent cycling so I'm leaving this value, but copying
+ * it from glpk maybe wasn't completely correct.
  */
 pub const PERTURB_AMT: f64 = 1e-9;
 
@@ -62,21 +68,20 @@ fn main() -> Result<(), String> {
         /********************************************************/
         /*                   Primal feasible                    */
         /********************************************************/
-        eprintln!("Solving primal problem");
         solve::primal(&A, &b, &c, B, N, f_no_perturb)?
     } else if !(c.max() > f64::EPSILON) {
         /********************************************************/
         /*                    Dual feasible                     */
         /********************************************************/
-        eprintln!("Solving dual problem");
         solve::dual(&A, &b, &c, B, N, f_no_perturb)?
     } else {
         /********************************************************/
         /*                 Initially infeasible                 */
         /********************************************************/
         let zero = Vector::zeros(c.len());
-        eprintln!("Solving aux problem");
 
+        // Solve the aux problem and feed the results into the primal
+        // solver.
         match solve::dual(&A, &b, &zero, B, N, f_no_perturb)? {
             SolveResult::Optimal(aux_solution) => solve::primal(
                 &A,
@@ -92,10 +97,9 @@ fn main() -> Result<(), String> {
         }
     };
 
-    if f_debug {
-        eprintln!("{:?}", solve_result);
-    } else {
-        println!("{}", solve_result);
+    match f_debug {
+        true => eprintln!("{:?}", solve_result),
+        false => println!("{}", solve_result),
     }
 
     Ok(())

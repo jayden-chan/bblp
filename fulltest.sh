@@ -23,19 +23,19 @@ do
         --verbose) flags+=("--debug"); err_out="stderr"
             ;;
         --easy)
-            inputs=(./$TESTS_DIR/input/vanderbei* ./$TESTS_DIR/input/v2* ./$TESTS_DIR/input/445k21* ./$TESTS_DIR/input/cycle.txt)
+            inputs+=(./$TESTS_DIR/input/vanderbei* ./$TESTS_DIR/input/v2* ./$TESTS_DIR/input/445k21* ./$TESTS_DIR/input/cycle.txt)
             mode="diff"
             ;;
         --vanderbei)
-            inputs=(./$TESTS_DIR/input/vanderbei*)
+            inputs+=(./$TESTS_DIR/input/vanderbei*)
             mode="diff"
             ;;
         --vol2)
-            inputs=(./$TESTS_DIR/input/v2*)
+            inputs+=(./$TESTS_DIR/input/v2*)
             mode="diff"
             ;;
         --netlib)
-            inputs=(./$TESTS_DIR/input/netlib*)
+            inputs+=(./$TESTS_DIR/input/netlib*)
             mode="diff"
             ;;
         --pure)

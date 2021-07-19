@@ -6,7 +6,7 @@
 
 use crate::solve::{Solution, SolveResult};
 use crate::util::{
-    col_slice, perturb, row_slice, select_entering, select_leaving, write_view,
+    col_view, perturb, row_view, select_entering, select_leaving, write_view,
 };
 use crate::{Matrix, Vector, EPSILON};
 
@@ -35,7 +35,7 @@ pub fn primal(
     };
 
     let mut x = Vector::zeros(m + n);
-    let x_B = col_slice(A, &B)
+    let x_B = col_view(A, &B)
         .lu()
         .solve(&b)
         .ok_or_else(|| String::from("Failed to for x_B"))?;
@@ -47,12 +47,12 @@ pub fn primal(
 
     let mut pivots = 0;
     loop {
-        let x_B = row_slice(&x, &B);
-        let c_B = row_slice(c, &B);
-        let c_N = row_slice(c, &N);
+        let x_B = row_view(&x, &B);
+        let c_B = row_view(c, &B);
+        let c_N = row_view(c, &N);
 
-        let A_B = col_slice(A, &B);
-        let A_N = col_slice(A, &N);
+        let A_B = col_view(A, &B);
+        let A_N = col_view(A, &N);
 
         let mut z = Vector::zeros(m + n);
         let v = A_B
@@ -63,8 +63,10 @@ pub fn primal(
         let z_N = A_N.transpose() * v - c_N;
         write_view(&mut z, &z_N, &N);
 
+        // Select our entering variable using the largest coefficient rule.
+        // If there is no suitable entering variable it means we have
+        // reached an optimal solution.
         let (j, j_idx) = match select_entering(&N, &z) {
-            // If there is no suitable entering variable it means we are done
             None => {
                 let objective_value = (c_B.transpose() * x_B)[0];
                 return Ok(SolveResult::Optimal(Solution {
@@ -86,6 +88,8 @@ pub fn primal(
 
         write_view(&mut delta_x, &delta_x_B, &B);
 
+        // Select our leaving variable. If there is no leaving
+        // variable the problem is unbounded
         let (t, i, i_idx) = match select_leaving(&B, &x, &delta_x) {
             None => return Ok(SolveResult::Unbounded),
             Some(p) => p,
