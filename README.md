@@ -11,7 +11,7 @@ Execute `make`.
 
 This will install the Rust toolchain to the current directory **only**.  After
 installation it will compile the program. The resulting binary is called `lp` and will be
-present in the same directory as the Makefile.
+present in the same directory as the Makefile. This should take about 2 minutes.
 
 If it is necessary to re-compile the program, just run `make build-local`.
 
