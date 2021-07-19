@@ -1,7 +1,17 @@
 /*
- * CSC-445 Linear Program Solver
- * Jayden Chan
- * V00898517
+ * Copyright © 2021 Jayden Chan. All rights reserved.
+ *
+ * bblp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ *
+ * bblp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bblp. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::solve::{Solution, SolveResult};
@@ -10,10 +20,6 @@ use crate::util::{
 };
 use crate::{Matrix, Vector, EPSILON};
 
-/**
- * Primal simplex solve routine as described on
- * slide 73 of lecture 14
- */
 pub fn primal(
     A: &Matrix,
     b: &Vector,
@@ -35,7 +41,6 @@ pub fn primal(
     };
 
     // Compute x_B by solving A_B * x_B = b
-    // (slide 103)
     let mut x = Vector::zeros(m + n);
     let x_B = col_view(A, &B)
         .lu()
@@ -57,7 +62,6 @@ pub fn primal(
         let A_N = col_view(A, &N);
 
         // Compute z by solving A_B^T * v = c_B then setting z_N = A_N^T * v - c_N
-        // (slide 103)
         let mut z = Vector::zeros(m + n);
         let v = A_B
             .transpose()
@@ -85,7 +89,6 @@ pub fn primal(
         };
 
         // Compute delta_x_B by solving A_B * delta_x_B = Aj
-        // (slide 103)
         let mut delta_x = Vector::zeros(m + n);
         let delta_x_B = A_B
             .lu()

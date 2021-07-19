@@ -1,7 +1,17 @@
 /*
- * CSC-445 Linear Program Solver
- * Jayden Chan
- * V00898517
+ * Copyright © 2021 Jayden Chan. All rights reserved.
+ *
+ * bblp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ *
+ * bblp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bblp. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::{Matrix, Vector, EPSILON, PERTURB_AMT};
@@ -91,14 +101,6 @@ pub fn perturb(A: &Matrix, B: &[usize], b: &Vector) -> Vector {
     );
     b + A_B * e
 }
-
-/********************************************************/
-/*                  Index set support                   */
-/*                                                      */
-/* The linear algebra library I'm using doesn't support */
-/* index sets so there are some extra functions needed  */
-/* for doing that.                                      */
-/********************************************************/
 
 /**
  * Construct a new matrix consisting of the columns from `M`

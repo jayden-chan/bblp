@@ -1,7 +1,17 @@
 /*
- * CSC-445 Linear Program Solver
- * Jayden Chan
- * V00898517
+ * Copyright © 2021 Jayden Chan. All rights reserved.
+ *
+ * bblp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ *
+ * bblp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bblp. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #![allow(non_snake_case)]
@@ -35,12 +45,6 @@ pub const EPSILON: f64 = 1e-9;
  * Perturbation amount is copied from glpk source code.
  * I'm not sure if there is a prescribed way for choosing
  * this value other than for it to be "sufficiently small".
- *
- * Edit: again after doing more research on perturbation I
- * think the value used in glpk is for a completely different
- * kind of perturbation than the kind I'm using. My implementation
- * does indeed prevent cycling so I'm leaving this value, but copying
- * it from glpk maybe wasn't completely correct.
  */
 pub const PERTURB_AMT: f64 = 1e-9;
 

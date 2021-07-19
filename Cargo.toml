@@ -1,6 +1,6 @@
 [package]
-name = "lp"
-version = "0.1.0"
+name = "bblp"
+version = "1.0.0"
 edition = "2018"
 
 [profile.release]

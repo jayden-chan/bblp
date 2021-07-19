@@ -1,7 +1,17 @@
 /*
- * CSC-445 Linear Program Solver
- * Jayden Chan
- * V00898517
+ * Copyright © 2021 Jayden Chan. All rights reserved.
+ *
+ * bblp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ *
+ * bblp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bblp. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::solve::{Solution, SolveResult};
@@ -10,10 +20,6 @@ use crate::util::{
 };
 use crate::{Matrix, Vector, EPSILON};
 
-/**
- * Dual simplex solve routine as described on
- * slide 97 of lecture 14
- */
 pub fn dual(
     A: &Matrix,
     b: &Vector,
@@ -32,8 +38,7 @@ pub fn dual(
     // it and now I'm not actually sure if this has any effect for the dual simplex
     // algorithm. The source I was going off of only described perturbation for the
     // primal method, and I just applied that here too. But I think for dual simplex
-    // a different perturbation method is needed. I wasn't able to figure this out
-    // before the deadline.
+    // a different perturbation method is needed.
     let b = if no_perturb {
         b.clone_owned()
     } else {
@@ -46,7 +51,6 @@ pub fn dual(
     let A_N = col_view(A, &N);
 
     // Compute z by solving A_B^T * v = c_B then setting z_N = A_N^T * v - c_N
-    // (slide 103)
     let mut z = Vector::zeros(m + n);
     let v = A_B
         .transpose()
@@ -69,7 +73,6 @@ pub fn dual(
         let c_B = row_view(c, &B);
 
         // Compute x_B by solving A_B * x_B = b
-        // (slide 103)
         let mut x = Vector::zeros(m + n);
         let x_B = col_view(A, &B)
             .lu()
@@ -94,13 +97,11 @@ pub fn dual(
             Some((i, i_idx)) => (i, i_idx),
         };
 
-        // Compute u as described on slide 91
         let mut u = Vector::zeros(z_B.len());
         u[i_idx] = 1.0;
         let u = u;
 
         // Compute delta_z_N by solving A_B^T * v = u and setting z_N = -A_N^T * v
-        // (slide 104)
         let mut delta_z = Vector::zeros(m + n);
         let v = A_B
             .transpose()

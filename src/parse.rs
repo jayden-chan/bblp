@@ -1,7 +1,17 @@
 /*
- * CSC-445 Linear Program Solver
- * Jayden Chan
- * V00898517
+ * Copyright © 2021 Jayden Chan. All rights reserved.
+ *
+ * bblp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3
+ * as published by the Free Software Foundation.
+ *
+ * bblp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bblp. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::{Matrix, Vector};
@@ -52,7 +62,6 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         return Err(String::from("Not enough lines in input file"));
     }
 
-    // Read value of top row into a vector
     let c: Vec<f64> = c
         .unwrap()
         .split_whitespace()
@@ -60,7 +69,6 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         .map(|val| if val == -0.0 { 0.0 } else { val })
         .collect();
 
-    // Read the rest of the lines
     let A: Vec<Vec<f64>> = lines
         .map(|l| {
             l.split_whitespace()
@@ -77,11 +85,9 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
         return Err(String::from("Not enough rows/cols for matrix A"));
     }
 
-    // Convert A from 2D vector to 1D vector with row-major storage
     let A: Vec<f64> = A.into_iter().flatten().collect();
     let A = Matrix::from_row_slice(m, n, &A);
 
-    // Grab the b column off of A
     let b = A.column(n - 1).clone_owned();
     let n = n - 1;
 
@@ -89,10 +95,8 @@ pub fn parse(file_contents: &str) -> Result<ParsedLP, String> {
     // was copied to `b` and no longer needed
     let mut A = A.insert_columns(n, m - 1, 0.0);
 
-    // Compute the mxm identity matrix to append to A
     let I = Matrix::identity(m, m);
 
-    // Append I columns to A
     I.column_iter()
         .enumerate()
         .for_each(|(i, val)| A.set_column(n + i, &val));
