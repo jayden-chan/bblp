@@ -101,7 +101,7 @@ pub fn dual(
         u[i_idx] = 1.0;
         let u = u;
 
-        // Compute delta_z_N by solving A_B^T * v = u and setting z_N = -A_N^T * v
+        // Compute delta_z_N by solving A_B^T * v = u and setting delta_z_N = -A_N^T * v
         let mut delta_z = Vector::zeros(m + n);
         let v = A_B
             .transpose()
