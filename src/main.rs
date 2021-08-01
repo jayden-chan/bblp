@@ -82,21 +82,16 @@ fn main() -> Result<(), String> {
         /********************************************************/
         /*                 Initially infeasible                 */
         /********************************************************/
-        let zero = Vector::zeros(c.len());
+        let zero = Vector::zeros(b.len());
 
         // Solve the aux problem and feed the results into the primal
         // solver.
-        match solve::dual(&A, &b, &zero, B, N, f_no_perturb)? {
-            SolveResult::Optimal(aux_solution) => solve::primal(
-                &A,
-                &b,
-                &c,
-                aux_solution.B,
-                aux_solution.N,
-                f_no_perturb,
-            )?,
+        match solve::primal(&A, &zero, &c, B, N, f_no_perturb)? {
+            SolveResult::Optimal(aux_solution) => {
+                solve::dual(&A, &b, &c, aux_solution.B, aux_solution.N, true)?
+            }
             SolveResult::Unbounded | SolveResult::Infeasible => {
-                SolveResult::Infeasible
+                SolveResult::Unbounded
             }
         }
     };
