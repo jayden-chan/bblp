@@ -32,9 +32,8 @@ pub type Matrix = DMatrix<f64>;
 pub type Vector = DVector<f64>;
 
 /**
- * Value used instead of 0 for checking when variables
- * are negative/non-negative. This value was previously
- * used to mitigate floating point problems with many
+ * Floating point comparison epsilon. Previously
+ * used to mitigate floating point errors with many
  * of the netlib tests. I'm not sure if it's still
  * necessary after implementing perturbation but I'm
  * leaving it in anyway.
@@ -49,12 +48,11 @@ pub const EPSILON: f64 = 1e-9;
 pub const PERTURB_AMT: f64 = 1e-9;
 
 fn main() -> Result<(), String> {
-    let (args, flags): (Vec<String>, Vec<String>) =
-        std::env::args().skip(1).partition(|a| !a.starts_with("--"));
+    let (flags, args): (Vec<String>, Vec<String>) =
+        std::env::args().skip(1).partition(|a| a.starts_with("--"));
 
-    let flags: HashSet<&str> = flags.iter().map(String::as_str).collect();
-    let f_debug = flags.contains("--debug");
-    let f_no_perturb = flags.contains("--no-perturb");
+    let flags: HashSet<String> = flags.into_iter().collect();
+    let no_perturb = flags.contains("--no-perturb");
 
     let stdin = String::from("/dev/stdin");
     let path = args.get(0).unwrap_or(&stdin);
@@ -69,24 +67,15 @@ fn main() -> Result<(), String> {
     let B: Vec<usize> = (parsed.n..parsed.n + parsed.m).collect();
 
     let solve_result = if !(b.min() < -f64::EPSILON) {
-        /********************************************************/
-        /*                   Primal feasible                    */
-        /********************************************************/
-        solve::primal(&A, &b, &c, B, N, f_no_perturb)?
+        solve::primal(&A, &b, &c, B, N, no_perturb)?
     } else if !(c.max() > f64::EPSILON) {
-        /********************************************************/
-        /*                    Dual feasible                     */
-        /********************************************************/
-        solve::dual(&A, &b, &c, B, N, f_no_perturb)?
+        solve::dual(&A, &b, &c, B, N, no_perturb)?
     } else {
-        /********************************************************/
-        /*                 Initially infeasible                 */
-        /********************************************************/
         let zero = Vector::zeros(b.len());
 
-        // Solve the aux problem and feed the results into the primal
-        // solver.
-        match solve::primal(&A, &zero, &c, B, N, f_no_perturb)? {
+        // Solve the aux problem and feed the results into the
+        // dual solver.
+        match solve::primal(&A, &zero, &c, B, N, no_perturb)? {
             SolveResult::Optimal(aux_solution) => {
                 solve::dual(&A, &b, &c, aux_solution.B, aux_solution.N, true)?
             }
@@ -96,7 +85,7 @@ fn main() -> Result<(), String> {
         }
     };
 
-    match f_debug {
+    match flags.contains("--debug") {
         true => eprintln!("{:?}", solve_result),
         false => println!("{}", solve_result),
     }
